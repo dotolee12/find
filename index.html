@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teachable Machine Image Classifier</title>
+    <title>Teachable Machine Image Classifier (Image Upload)</title>
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
         button { padding: 10px 20px; font-size: 1.2em; margin-bottom: 20px; cursor: pointer; }
-        #webcam-container { border: 1px solid #ccc; margin-bottom: 10px; }
+        #image-upload-container { margin-bottom: 20px; }
+        #uploaded-image-preview { max-width: 300px; max-height: 300px; border: 1px solid #ccc; margin-top: 10px; display: none; } /* 초기에는 숨김 */
         #label-container div { margin-bottom: 5px; font-size: 1.1em; }
     </style>
 </head>
 <body>
 
-    <div>Teachable Machine Image Model</div>
-    <button type="button" onclick="init()">Start</button>
-    <div id="webcam-container"></div>
+    <div>Teachable Machine Image Model (사진 업로드)</div>
+    <div id="image-upload-container">
+        <input type="file" id="image-upload" accept="image/*">
+        <button type="button" onclick="predictUploadedImage()">사진 판별</button>
+    </div>
+
+    <img id="uploaded-image-preview" src="#" alt="업로드된 이미지 미리보기">
     <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-        // More API functions here:
-        // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-        // the link to your model provided by Teachable Machine export panel
         const URL = "./my_model/";
-
-        let model, webcam, labelContainer, maxPredictions;
+        let model, labelContainer, maxPredictions;
         const THRESHOLD = 0.8; // 0.8 (80%) 이상일 때만 판별
 
-        // Load the image model and setup the webcam
+        // 모델 로드 함수 (웹캠 대신 파일 업로드 용도로 변경)
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -38,32 +38,47 @@
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            const flip = true; // whether to flip the webcam
-            webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-            await webcam.setup(); // request access to the webcam
-            await webcam.play();
-            window.requestAnimationFrame(loop);
-
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
             labelContainer = document.getElementById("label-container");
-            // 모든 예측 레이블을 위한 div를 미리 생성 (최대 클래스 개수만큼)
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
-            // "이건 아닙니다."를 표시할 추가 div도 미리 생성해 둡니다.
             const notThisDiv = document.createElement("div");
-            notThisDiv.id = "not-this-label"; // ID를 명확하게 지정
+            notThisDiv.id = "not-this-label";
             labelContainer.appendChild(notThisDiv);
+
+            // 파일 입력 감지
+            document.getElementById('image-upload').addEventListener('change', handleImageUpload);
         }
 
-        async function loop() {
-            webcam.update();
-            await predict();
-            window.requestAnimationFrame(loop);
+        // 이미지 업로드 처리 및 미리보기
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgPreview = document.getElementById('uploaded-image-preview');
+                    imgPreview.src = e.target.result;
+                    imgPreview.style.display = 'block'; // 이미지 보이기
+                    // 이전 예측 결과 초기화
+                    for (let i = 0; i < maxPredictions; i++) {
+                        labelContainer.childNodes[i].innerHTML = "";
+                    }
+                    document.getElementById("not-this-label").innerHTML = "";
+                }
+                reader.readAsDataURL(file);
+            }
         }
 
-        async function predict() {
-            const prediction = await model.predict(webcam.canvas);
+        // 업로드된 이미지로 판별 수행
+        async function predictUploadedImage() {
+            const imgElement = document.getElementById('uploaded-image-preview');
+            // 이미지가 로드되지 않았거나 보이지 않으면 판별하지 않음
+            if (!imgElement || imgElement.style.display === 'none') {
+                alert('먼저 이미지를 업로드해주세요!');
+                return;
+            }
+
+            const prediction = await model.predict(imgElement);
 
             // 먼저 모든 예측 레이블과 "이건 아닙니다." 레이블을 초기화합니다.
             for (let i = 0; i < maxPredictions; i++) {
@@ -84,15 +99,16 @@
 
             // 가장 높은 확률이 THRESHOLD 이상인지 확인합니다.
             if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
-                // 특정 클래스로 판별될 경우, 해당 클래스의 레이블만 업데이트
                 const classPrediction =
-                    prediction[bestPredictionIndex].className + ": " + (maxProbability * 100).toFixed(0) + "%"; // 확률을 %로 표시
+                    prediction[bestPredictionIndex].className + ": " + (maxProbability * 100).toFixed(0) + "%";
                 labelContainer.childNodes[bestPredictionIndex].innerHTML = classPrediction;
             } else {
-                // 0.8 이상인 클래스가 없으면 "이건 아닙니다."를 표시합니다.
                 document.getElementById("not-this-label").innerHTML = "이건 아닙니다.";
             }
         }
+
+        // 페이지 로드 시 모델 초기화
+        window.onload = init; // init 함수를 DOM 로드 후 호출
     </script>
 </body>
 </html>
