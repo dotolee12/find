@@ -3,25 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teachable Machine Image Classifier (Image Upload)</title>
+    <title>Teachable Machine Image Classifier (사진 업로드)</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 1.2em; margin-bottom: 20px; cursor: pointer; }
-        #image-upload-container { margin-bottom: 20px; }
-        #uploaded-image-preview { max-width: 300px; max-height: 300px; border: 1px solid #ccc; margin-top: 10px; display: none; } /* 초기에는 숨김 */
-        #label-container div { margin-bottom: 5px; font-size: 1.1em; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; /* 뷰포트 전체 높이를 사용 */
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        h2 {
+            width: 80%; /* 컨테이너 폭에 맞춤 */
+            max-width: 400px;
+            padding: 15px 0;
+            margin: 20px 0;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 파일 선택 버튼 스타일 */
+        #image-upload-container {
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #image-upload {
+            display: none; /* 실제 파일 입력 필드를 숨김 */
+        }
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 25px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .custom-file-upload:hover {
+            background-color: #0056b3;
+        }
+
+        /* 이미지 미리보기 영역 */
+        #uploaded-image-preview-container {
+            width: 80%;
+            max-width: 400px;
+            height: 300px; /* 고정된 높이 */
+            background-color: #ddd;
+            border: 1px solid #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden; /* 이미지가 영역을 벗어나지 않도록 */
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+            position: relative; /* 텍스트 위치를 위해 */
+        }
+        #uploaded-image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            display: none; /* 초기에는 숨김 */
+            object-fit: contain; /* 비율 유지하며 컨테이너에 맞춤 */
+        }
+        #preview-placeholder {
+            position: absolute;
+            color: #777;
+            font-size: 1.2em;
+            display: block; /* 초기에는 보임 */
+        }
+
+        /* 판별 결과 제목 */
+        h3 {
+            width: 80%;
+            max-width: 400px;
+            padding: 10px 0;
+            margin: 20px 0 10px 0;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 판별 결과 표시 영역 */
+        #label-container {
+            width: 80%;
+            max-width: 400px;
+            min-height: 50px; /* 결과가 없어도 공간 유지 */
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 30px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #label-container div {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        #not-this-label {
+            color: #dc3545; /* "이건 아닙니다."는 빨간색 */
+        }
+
+
+        /* 사진 판별 버튼 */
+        #predict-button {
+            padding: 15px 30px;
+            font-size: 1.3em;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #predict-button:hover {
+            background-color: #218838;
+        }
+
     </style>
 </head>
 <body>
 
-    <div>Teachable Machine Image Model (사진 업로드)</div>
+    <h2>Teachable Machine Image Model (사진 업로드)</h2>
+
+    <h2 style="background-color: #a7d9ff;">1. 사진 선택</h2>
     <div id="image-upload-container">
+        <label for="image-upload" class="custom-file-upload">파일 선택</label>
         <input type="file" id="image-upload" accept="image/*">
-        <button type="button" onclick="predictUploadedImage()">사진 판별</button>
+        <div id="file-name-display" style="margin-top: 10px; font-size: 0.9em; color: #555;">선택된 파일 없음</div>
     </div>
 
-    <img id="uploaded-image-preview" src="#" alt="업로드된 이미지 미리보기">
-    <div id="label-container"></div>
+    <div id="uploaded-image-preview-container">
+        <img id="uploaded-image-preview" src="#" alt="업로드된 이미지 미리보기">
+        <span id="preview-placeholder">3. 찍은 사진</span>
+    </div>
+
+    <h2>4. 판별 결과</h2>
+    <div id="label-container">
+        <div id="not-this-label"></div>
+    </div>
+
+    <button type="button" id="predict-button" onclick="predictUploadedImage()">2. 사진 판별</button>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
@@ -30,61 +167,72 @@
         let model, labelContainer, maxPredictions;
         const THRESHOLD = 0.8; // 0.8 (80%) 이상일 때만 판별
 
-        // 모델 로드 함수 (웹캠 대신 파일 업로드 용도로 변경)
+        // 모델 로드 함수
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
 
-            labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
+                labelContainer = document.getElementById("label-container");
+                // 모든 예측 레이블 div는 필요 없으므로, 결과는 #not-this-label에만 표시
+                // 이 부분은 지웁니다: for (let i = 0; i < maxPredictions; i++) { labelContainer.appendChild(document.createElement("div")); }
+                document.getElementById("not-this-label").innerHTML = "사진을 업로드하고 판별해주세요."; // 초기 메시지
+
+                // 파일 입력 감지
+                document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+                console.log("Model loaded successfully.");
+            } catch (error) {
+                console.error("Failed to load model:", error);
+                labelContainer.innerHTML = "<div style='color: red;'>모델 로드 실패! 'my_model' 폴더와 파일 경로를 확인해주세요.</div>";
             }
-            const notThisDiv = document.createElement("div");
-            notThisDiv.id = "not-this-label";
-            labelContainer.appendChild(notThisDiv);
-
-            // 파일 입력 감지
-            document.getElementById('image-upload').addEventListener('change', handleImageUpload);
         }
 
         // 이미지 업로드 처리 및 미리보기
         function handleImageUpload(event) {
             const file = event.target.files[0];
+            const imgPreview = document.getElementById('uploaded-image-preview');
+            const previewPlaceholder = document.getElementById('preview-placeholder');
+            const fileNameDisplay = document.getElementById('file-name-display');
+
             if (file) {
+                fileNameDisplay.textContent = file.name; // 파일 이름 표시
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const imgPreview = document.getElementById('uploaded-image-preview');
                     imgPreview.src = e.target.result;
                     imgPreview.style.display = 'block'; // 이미지 보이기
-                    // 이전 예측 결과 초기화
-                    for (let i = 0; i < maxPredictions; i++) {
-                        labelContainer.childNodes[i].innerHTML = "";
-                    }
-                    document.getElementById("not-this-label").innerHTML = "";
+                    previewPlaceholder.style.display = 'none'; // 플레이스홀더 숨기기
+
+                    // 이전 예측 결과 초기화 (이건 아닙니다. 도 초기화)
+                    document.getElementById("not-this-label").innerHTML = "판별 버튼을 눌러주세요.";
                 }
                 reader.readAsDataURL(file);
+            } else {
+                imgPreview.src = "#";
+                imgPreview.style.display = 'none';
+                previewPlaceholder.style.display = 'block';
+                fileNameDisplay.textContent = "선택된 파일 없음";
+                document.getElementById("not-this-label").innerHTML = "사진을 업로드하고 판별해주세요.";
             }
         }
 
         // 업로드된 이미지로 판별 수행
         async function predictUploadedImage() {
             const imgElement = document.getElementById('uploaded-image-preview');
+            const notThisLabel = document.getElementById("not-this-label");
+
             // 이미지가 로드되지 않았거나 보이지 않으면 판별하지 않음
-            if (!imgElement || imgElement.style.display === 'none') {
-                alert('먼저 이미지를 업로드해주세요!');
+            if (!imgElement || imgElement.style.display === 'none' || imgElement.src === "#") {
+                notThisLabel.innerHTML = "<span style='color: orange;'>먼저 이미지를 업로드해주세요!</span>";
                 return;
             }
 
-            const prediction = await model.predict(imgElement);
+            // 판별 중 메시지
+            notThisLabel.innerHTML = "판별 중...";
 
-            // 먼저 모든 예측 레이블과 "이건 아닙니다." 레이블을 초기화합니다.
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.childNodes[i].innerHTML = "";
-            }
-            document.getElementById("not-this-label").innerHTML = "";
+            const prediction = await model.predict(imgElement);
 
             // 가장 높은 확률을 가진 클래스를 찾습니다.
             let maxProbability = 0;
@@ -101,14 +249,16 @@
             if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
                 const classPrediction =
                     prediction[bestPredictionIndex].className + ": " + (maxProbability * 100).toFixed(0) + "%";
-                labelContainer.childNodes[bestPredictionIndex].innerHTML = classPrediction;
+                notThisLabel.innerHTML = classPrediction; // 판별 결과를 여기에 표시
+                notThisLabel.style.color = '#007bff'; // 결과 색상
             } else {
-                document.getElementById("not-this-label").innerHTML = "이건 아닙니다.";
+                notThisLabel.innerHTML = "이건 아닙니다.";
+                notThisLabel.style.color = '#dc3545'; // "이건 아닙니다." 색상
             }
         }
 
         // 페이지 로드 시 모델 초기화
-        window.onload = init; // init 함수를 DOM 로드 후 호출
+        window.onload = init;
     </script>
 </body>
 </html>
