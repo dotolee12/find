@@ -11,41 +11,37 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh; /* 뷰포트 전체 높이를 사용 */
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f2f5;
             color: #333;
         }
 
-        /* 공통 헤더 스타일 */
         .section-header {
-            width: 80%; /* 컨테이너 폭에 맞춤 */
+            width: 80%;
             max-width: 400px;
             padding: 15px 0;
             margin: 20px 0;
             border-radius: 8px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 1.5em; /* 폰트 크기 조정 */
+            font-size: 1.5em;
             font-weight: bold;
         }
 
-        /* 1. 사진 선택 헤더 스타일 */
         #select-image-header {
-            background-color: #a7d9ff; /* 이미지 요청과 동일한 파란색 */
-            cursor: pointer; /* 클릭 가능한 모양 */
+            background-color: #a7d9ff;
+            cursor: pointer;
             transition: background-color 0.3s ease;
         }
         #select-image-header:hover {
-            background-color: #8ac2ef; /* 호버 시 색상 변경 */
+            background-color: #8ac2ef;
         }
 
-        /* 파일 입력 필드는 완전히 숨김 */
         #image-upload {
             display: none;
         }
 
-        /* 파일 이름 표시 영역 */
         #file-name-display {
             margin-top: 10px;
             font-size: 0.9em;
@@ -53,44 +49,32 @@
             text-align: center;
             width: 80%;
             max-width: 400px;
-            display: none; /* 초기에는 숨김 */
+            display: none;
         }
 
-        /* 2. 찍은 사진 (이미지 미리보기 컨테이너) */
         #uploaded-image-preview-container {
             width: 80%;
             max-width: 400px;
-            height: 300px; /* 고정된 높이 */
-            background-color: #ddd; /* 이미지 요청과 동일한 회색 */
+            height: 300px;
+            background-color: #ddd;
             border: 1px solid #bbb;
-            display: none; /* 초기에는 숨김 */
+            display: none;
             align-items: center;
             justify-content: center;
-            margin: 20px 0; /* 상하 마진 추가 */
+            margin: 20px 0;
             border-radius: 8px;
-            overflow: auto; /* 여러 이미지 타일 표시를 위해 스크롤 가능하게 */
+            overflow: auto;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
             position: relative;
-            padding: 5px; /* 타일 사이의 공간 확보 */
-            box-sizing: border-box; /* 패딩이 너비/높이에 포함되도록 */
-            /* grid 스타일 */
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* 작은 타일 여러 개 */
-            gap: 5px; /* 타일 간 간격 */
-        }
-        #uploaded-image-preview-container.empty-placeholder #preview-placeholder {
-            display: block; /* 이미지 없을 때 플레이스홀더 보이기 */
-            position: relative; /* 그리드 중앙 정렬에 맞추기 위해 */
-        }
-        #uploaded-image-preview-container:not(.empty-placeholder) #preview-placeholder {
-            display: none; /* 이미지 있을 때 플레이스홀더 숨기기 */
+            padding: 5px;
+            box-sizing: border-box;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 5px;
         }
 
-
-        /* 미리보기 이미지 타일 */
         .image-tile {
-            width: 100%; /* 그리드 아이템 내에서 꽉 채우기 */
-            height: 80px; /* 고정된 타일 높이 */
+            width: 100%;
+            height: 80px;
             background-color: #eee;
             border: 1px solid #ccc;
             display: flex;
@@ -102,46 +86,42 @@
         .image-tile img {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain; /* 비율 유지하며 타일에 맞춤 */
+            object-fit: contain;
         }
+
         #preview-placeholder {
             color: #777;
             font-size: 1.2em;
-            /* grid 컨테이너에서 flex를 grid로 변경하면서 중앙 정렬 조정 */
-            grid-column: 1 / -1; /* 모든 컬럼에 걸쳐 중앙에 오도록 */
             text-align: center;
+            width: 100%;
         }
 
-
-        /* 3. 사진 판별 버튼 */
         #predict-button {
             padding: 15px 30px;
             font-size: 1.3em;
-            background-color: #888; /* 초기 회색 (비활성화 상태) */
+            background-color: #888;
             color: white;
             border: none;
             border-radius: 5px;
-            cursor: not-allowed; /* 초기 비활성화 커서 */
+            cursor: not-allowed;
             transition: background-color 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px; /* 판별 결과와 간격 */
-            display: none; /* 초기에는 숨김 */
+            margin-bottom: 20px;
+            display: none;
         }
-        #predict-button.active { /* 활성화 상태 */
-            background-color: #28a745; /* 이미지 요청과 동일한 초록색 */
+        #predict-button.active {
+            background-color: #28a745;
             cursor: pointer;
         }
         #predict-button.active:hover {
             background-color: #218838;
         }
 
-        /* 4. 판별 결과 헤더 */
         #result-header {
-            background-color: #e0e0e0; /* 이미지 요청과 동일한 회색 */
-            display: none; /* 초기에는 숨김 */
+            background-color: #e0e0e0;
+            display: none;
         }
 
-        /* 판별 결과 표시 영역 */
         #label-container {
             width: 80%;
             max-width: 400px;
@@ -155,88 +135,98 @@
             border-radius: 8px;
             background-color: #fff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: none; /* 초기에는 숨김 */
+            display: none;
         }
         #label-container div {
             margin: 5px 0;
             padding: 5px;
         }
         #not-this-label {
-            color: #dc3545; /* "이건 아닙니다."는 빨간색 */
+            color: #dc3545;
         }
         #loading-indicator {
             color: #555;
             font-size: 1.1em;
         }
-
     </style>
 </head>
 <body>
-
     <h2 id="select-image-header" class="section-header">1. 사진 선택</h2>
     <input type="file" id="image-upload" accept="image/*" multiple>
     <div id="file-name-display">선택된 파일 없음</div>
 
-    <div id="uploaded-image-preview-container" class="empty-placeholder">
+    <div id="uploaded-image-preview-container">
         <span id="preview-placeholder">2. 찍은 사진</span>
     </div>
 
-    <button type="button" id="predict-button" onclick="predictAllImages()">3. 사진 판별</button>
+    <button type="button" id="predict-button">3. 사진 판별</button>
 
     <h2 id="result-header" class="section-header">4. 판별 결과</h2>
     <div id="label-container">
         <div id="not-this-label"></div>
     </div>
 
-
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
         const URL = "./my_model/";
-        let model, labelContainer, maxPredictions;
-        const THRESHOLD = 0.8; // 0.8 (80%) 이상일 때만 판별
-        const MAX_FILES = 20; // 최대 파일 선택 개수
+        let model, maxPredictions;
+        const THRESHOLD = 0.8;
+        const MAX_FILES = 20;
 
-        let uploadedFiles = []; // 업로드된 파일 객체들을 저장할 배열
+        let uploadedFiles = [];
 
-        // --- UI 요소 참조 ---
+        // UI 요소 참조
         const selectImageHeader = document.getElementById('select-image-header');
         const imageUploadInput = document.getElementById('image-upload');
         const fileNameDisplay = document.getElementById('file-name-display');
         const uploadedImagePreviewContainer = document.getElementById('uploaded-image-preview-container');
-        const previewPlaceholder = document.getElementById('preview-placeholder');
         const predictButton = document.getElementById('predict-button');
         const resultHeader = document.getElementById('result-header');
+        const labelContainer = document.getElementById('label-container');
         const notThisLabel = document.getElementById("not-this-label");
 
-        // --- 모델 로드 함수 ---
+        // 모델 로드 함수
         async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-
             try {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+                
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
                 console.log("Model loaded successfully.");
 
-                // 초기 UI 상태 설정
                 resetUI();
-
-                // 이벤트 리스너 연결
-                selectImageHeader.addEventListener('click', () => imageUploadInput.click()); // 1. 사진 선택 헤더 클릭 시 파일 업로드 트리거
-                imageUploadInput.addEventListener('change', handleImageUpload); // 파일 선택 시
+                setupEventListeners();
 
             } catch (error) {
                 console.error("Failed to load model:", error);
                 notThisLabel.innerHTML = "<div style='color: red;'>모델 로드 실패! 'my_model' 폴더와 파일 경로를 확인해주세요.</div>";
-                notThisLabel.style.display = 'block'; // 오류 메시지는 항상 보이게
-                resultHeader.style.display = 'block'; // 결과 헤더도 보이게
+                labelContainer.style.display = 'block';
+                resultHeader.style.display = 'block';
+                
+                // 모델 로드 실패해도 UI 테스트는 가능하도록
+                resetUI();
+                setupEventListeners();
             }
         }
 
-        // --- UI 초기화 함수 ---
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            // 사진 선택 헤더 클릭 시 파일 선택
+            selectImageHeader.addEventListener('click', function() {
+                imageUploadInput.click();
+            });
+            
+            // 파일 선택 시 이미지 업로드 처리
+            imageUploadInput.addEventListener('change', handleImageUpload);
+            
+            // 판별 버튼 클릭 시 예측 실행
+            predictButton.addEventListener('click', predictAllImages);
+        }
+
+        // UI 초기화 함수
         function resetUI() {
-            // 모든 섹션 숨김 (초기에는 1. 사진 선택만 보임)
             selectImageHeader.style.display = 'block';
             fileNameDisplay.style.display = 'none';
             uploadedImagePreviewContainer.style.display = 'none';
@@ -244,48 +234,40 @@
             resultHeader.style.display = 'none';
             labelContainer.style.display = 'none';
 
-            // 이미지 미리보기 및 파일 목록 초기화
-            uploadedImagePreviewContainer.innerHTML = `<span id="preview-placeholder">2. 찍은 사진</span>`;
-            uploadedImagePreviewContainer.classList.add('empty-placeholder');
+            uploadedImagePreviewContainer.innerHTML = '<span id="preview-placeholder">2. 찍은 사진</span>';
             fileNameDisplay.textContent = "선택된 파일 없음";
             uploadedFiles = [];
 
-            // 판별 버튼 비활성화 상태
             predictButton.classList.remove('active');
             predictButton.disabled = true;
             predictButton.textContent = "3. 사진 판별";
         }
 
-
-        // --- 이미지 업로드 처리 및 미리보기 ---
+        // 이미지 업로드 처리
         async function handleImageUpload(event) {
-            const files = Array.from(event.target.files); // FileList를 배열로 변환
-            uploadedFiles = []; // 기존 파일 초기화
-
+            const files = Array.from(event.target.files);
+            
             if (files.length === 0) {
-                resetUI(); // 파일 선택 취소 시 초기화
+                resetUI();
                 return;
             }
 
             if (files.length > MAX_FILES) {
                 alert(`최대 ${MAX_FILES}장까지만 선택할 수 있습니다. (${files.length}장 선택됨)`);
-                // 20장 초과 시 이전 상태로 되돌리거나, 20장만 처리하도록 선택 가능
-                // 여기서는 초과된 파일을 제외하고 20장까지만 처리합니다.
                 uploadedFiles = files.slice(0, MAX_FILES);
             } else {
                 uploadedFiles = files;
             }
 
-            // --- UI 전환: 1단계 -> 2단계 ---
-            selectImageHeader.style.display = 'none'; // 1. 사진 선택 헤더 숨김
-            fileNameDisplay.style.display = 'block'; // 파일 이름 표시
+            // UI 업데이트
+            selectImageHeader.style.display = 'none';
+            fileNameDisplay.style.display = 'block';
             fileNameDisplay.textContent = `${uploadedFiles.length}장 선택됨`;
 
-            uploadedImagePreviewContainer.style.display = 'grid'; // 미리보기 컨테이너 보이기 (grid로 설정됨)
-            uploadedImagePreviewContainer.innerHTML = ''; // 기존 미리보기 초기화
-            uploadedImagePreviewContainer.classList.remove('empty-placeholder'); // 플레이스홀더 숨김 처리
+            uploadedImagePreviewContainer.style.display = 'grid';
+            uploadedImagePreviewContainer.innerHTML = '';
 
-            // 각 이미지 파일을 타일 형태로 추가
+            // 이미지 미리보기 생성
             for (const file of uploadedFiles) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -293,134 +275,129 @@
                     tileDiv.className = 'image-tile';
                     const img = document.createElement('img');
                     img.src = e.target.result;
+                    img.alt = file.name;
                     tileDiv.appendChild(img);
                     uploadedImagePreviewContainer.appendChild(tileDiv);
-                }
+                };
                 reader.readAsDataURL(file);
             }
 
-            predictButton.style.display = 'block'; // 3. 사진 판별 버튼 보이기
-            predictButton.classList.add('active'); // 활성화
+            // 판별 버튼 활성화
+            predictButton.style.display = 'block';
+            predictButton.classList.add('active');
             predictButton.disabled = false;
-            predictButton.textContent = "3. 사진 판별"; // 텍스트 초기화
+            predictButton.textContent = "3. 사진 판별";
 
-            resultHeader.style.display = 'none'; // 4. 판별 결과 숨김
-            labelContainer.style.display = 'none'; // 결과 컨테이너 숨김
-            notThisLabel.innerHTML = ""; // 결과 텍스트 초기화
+            // 결과 영역 초기화
+            resultHeader.style.display = 'none';
+            labelContainer.style.display = 'none';
+            notThisLabel.innerHTML = "";
         }
 
-
-        // --- 모든 업로드된 이미지로 판별 수행 ---
+        // 모든 이미지 판별
         async function predictAllImages() {
             if (uploadedFiles.length === 0) {
                 notThisLabel.innerHTML = "<span style='color: orange;'>먼저 이미지를 업로드해주세요!</span>";
-                labelContainer.style.display = 'block'; // 메시지 보이도록
+                labelContainer.style.display = 'block';
                 resultHeader.style.display = 'block';
                 return;
             }
 
-            // --- UI 전환: 2단계 -> 3단계 (판별 중) ---
+            // 판별 중 상태로 변경
             predictButton.textContent = "판별 중...";
             predictButton.classList.remove('active');
             predictButton.disabled = true;
 
-            resultHeader.style.display = 'block'; // 4. 판별 결과 헤더 보이기
-            labelContainer.style.display = 'block'; // 결과 컨테이너 보이기
-            notThisLabel.innerHTML = "<span id='loading-indicator'>판별 중... 잠시만 기다려 주세요.</span>";
-            notThisLabel.style.color = '#555';
+            resultHeader.style.display = 'block';
+            labelContainer.style.display = 'block';
+            notThisLabel.innerHTML = "<span style='color: #555; font-size: 1.1em;'>판별 중... 잠시만 기다려 주세요.</span>";
 
             let resultCounts = {
                 "롯데월드 성": 0,
                 "너구리": 0,
                 "틀린 사진": 0
             };
-            // let allResultsHtml = ""; // 모든 사진의 결과를 누적할 문자열 (원하시면 활성화)
 
             for (let i = 0; i < uploadedFiles.length; i++) {
                 const file = uploadedFiles[i];
-                const img = new Image();
-                img.src = URL.createObjectURL(file); // 임시 URL 생성
+                
+                try {
+                    if (model) {
+                        const img = new Image();
+                        img.src = URL.createObjectURL(file);
+                        
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
 
-                await new Promise(resolve => img.onload = resolve); // 이미지가 로드될 때까지 기다림
+                        const prediction = await model.predict(img);
+                        
+                        let maxProbability = 0;
+                        let bestPredictionIndex = -1;
 
-                const prediction = await model.predict(img);
+                        for (let j = 0; j < maxPredictions; j++) {
+                            if (prediction[j].probability > maxProbability) {
+                                maxProbability = prediction[j].probability;
+                                bestPredictionIndex = j;
+                            }
+                        }
 
-                let maxProbability = 0;
-                let bestPredictionIndex = -1;
-
-                for (let j = 0; j < maxPredictions; j++) {
-                    if (prediction[j].probability > maxProbability) {
-                        maxProbability = prediction[j].probability;
-                        bestPredictionIndex = j;
-                    }
-                }
-
-                let predictionResult = "틀린 사진";
-                let resultSymbol = "[사]";
-                // let resultColor = '#dc3545'; // 틀린 사진 기본 색상
-
-                if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
-                    const className = prediction[bestPredictionIndex].className;
-                    if (className === "롯데월드 성") {
-                        predictionResult = "롯데월드 성";
-                        resultSymbol = "[삼]";
-                        // resultColor = '#007bff';
-                    } else if (className === "너구리") {
-                        predictionResult = "너구리";
-                        resultSymbol = "[총]";
-                        // resultColor = '#007bff';
+                        let predictionResult = "틀린 사진";
+                        
+                        if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
+                            const className = prediction[bestPredictionIndex].className;
+                            if (className === "롯데월드 성") {
+                                predictionResult = "롯데월드 성";
+                            } else if (className === "너구리") {
+                                predictionResult = "너구리";
+                            }
+                        }
+                        
+                        resultCounts[predictionResult]++;
+                        
+                        // 메모리 정리
+                        URL.revokeObjectURL(img.src);
                     } else {
-                        // Teachable Machine에서 학습된 다른 클래스인 경우, 일단 "틀린 사진"으로 처리
-                        predictionResult = "틀린 사진";
-                        resultSymbol = "[사]";
-                        // resultColor = '#dc3545';
+                        // 모델이 없는 경우 - 실제 사용시에는 이 부분 제거
+                        resultCounts["틀린 사진"]++;
                     }
-                    resultCounts[predictionResult]++;
-
-                } else {
+                } catch (error) {
+                    console.error(`이미지 ${i + 1} 처리 중 오류:`, error);
                     resultCounts["틀린 사진"]++;
                 }
-
-                // 각 이미지별 결과 표시 (선택 사항: 원하시면 제거 가능)
-                // allResultsHtml += `<div style="color:${resultColor};">${file.name} : ${predictionResult} (${(maxProbability * 100).toFixed(0)}%) ${resultSymbol}</div>`;
             }
 
-            // --- 최종 판별 결과 표시 ---
-            // 전체 결과 요약
-            let summary = ``;
-            let isFirst = true;
-
-            if(resultCounts["롯데월드 성"] > 0) {
-                summary += `롯데월드 성: ${resultCounts["롯데월드 성"]}개`;
-                isFirst = false;
+            // 결과 표시
+            let summary = '';
+            let parts = [];
+            
+            if (resultCounts["롯데월드 성"] > 0) {
+                parts.push(`롯데월드 성: ${resultCounts["롯데월드 성"]}개`);
             }
-            if(resultCounts["너구리"] > 0) {
-                if (!isFirst) summary += `, `;
-                summary += `너구리: ${resultCounts["너구리"]}개`;
-                isFirst = false;
+            if (resultCounts["너구리"] > 0) {
+                parts.push(`너구리: ${resultCounts["너구리"]}개`);
             }
-            if(resultCounts["틀린 사진"] > 0) {
-                if (!isFirst) summary += `, `;
-                summary += `틀린 사진: ${resultCounts["틀린 사진"]}개`;
+            if (resultCounts["틀린 사진"] > 0) {
+                parts.push(`틀린 사진: ${resultCounts["틀린 사진"]}개`);
             }
 
-            notThisLabel.innerHTML = `<div>총 ${uploadedFiles.length}장 판별 완료:</div><div style="margin-top:10px;">${summary.trim()}</div>`;
-            notThisLabel.style.color = '#333'; // 요약 색상은 기본색으로
+            summary = parts.join(', ');
 
-            // 각 이미지별 상세 결과 표시 (위에 만든 allResultsHtml 사용)
-            // if (allResultsHtml) {
-            //     notThisLabel.innerHTML += `<hr style="border-color:#eee; margin: 15px 0;">${allResultsHtml}`; // 모든 결과를 한 줄씩 추가하고 싶다면 활성화
-            // }
+            notThisLabel.innerHTML = `
+                <div>총 ${uploadedFiles.length}장 판별 완료:</div>
+                <div style="margin-top:10px; font-size: 1.1em;">${summary}</div>
+            `;
+            notThisLabel.style.color = '#333';
 
-
-            // --- UI 전환: 3단계 -> 4단계 완료 ---
-            predictButton.textContent = "3. 사진 판별"; // 버튼 텍스트 복구
-            predictButton.classList.add('active'); // 버튼 다시 활성화
+            // 버튼 상태 복구
+            predictButton.textContent = "3. 사진 판별";
+            predictButton.classList.add('active');
             predictButton.disabled = false;
         }
 
-        // --- 페이지 로드 시 모델 초기화 ---
-        window.onload = init;
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>
