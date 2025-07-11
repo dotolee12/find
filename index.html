@@ -334,7 +334,7 @@
                 "너구리": 0,
                 "틀린 사진": 0
             };
-            let allResultsHtml = ""; // 모든 사진의 결과를 누적할 문자열
+            // let allResultsHtml = ""; // 모든 사진의 결과를 누적할 문자열 (원하시면 활성화)
 
             for (let i = 0; i < uploadedFiles.length; i++) {
                 const file = uploadedFiles[i];
@@ -357,23 +357,23 @@
 
                 let predictionResult = "틀린 사진";
                 let resultSymbol = "[사]";
-                let resultColor = '#dc3545'; // 틀린 사진 기본 색상
+                // let resultColor = '#dc3545'; // 틀린 사진 기본 색상
 
                 if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
                     const className = prediction[bestPredictionIndex].className;
                     if (className === "롯데월드 성") {
                         predictionResult = "롯데월드 성";
                         resultSymbol = "[삼]";
-                        resultColor = '#007bff';
+                        // resultColor = '#007bff';
                     } else if (className === "너구리") {
                         predictionResult = "너구리";
                         resultSymbol = "[총]";
-                        resultColor = '#007bff';
+                        // resultColor = '#007bff';
                     } else {
                         // Teachable Machine에서 학습된 다른 클래스인 경우, 일단 "틀린 사진"으로 처리
                         predictionResult = "틀린 사진";
                         resultSymbol = "[사]";
-                        resultColor = '#dc3545';
+                        // resultColor = '#dc3545';
                     }
                     resultCounts[predictionResult]++;
 
@@ -382,24 +382,39 @@
                 }
 
                 // 각 이미지별 결과 표시 (선택 사항: 원하시면 제거 가능)
-                allResultsHtml += `<div style="color:${resultColor};">${file.name} : ${predictionResult} (${(maxProbability * 100).toFixed(0)}%) ${resultSymbol}</div>`;
+                // allResultsHtml += `<div style="color:${resultColor};">${file.name} : ${predictionResult} (${(maxProbability * 100).toFixed(0)}%) ${resultSymbol}</div>`;
             }
 
             // --- 최종 판별 결과 표시 ---
-            // 전체 결과 요약 (예: "롯데월드 성: 5개, 너구리: 3개, 틀린 사진: 1개")
+            // 전체 결과 요약
             let summary = ``;
-            if(resultCounts["롯데월드 성"] > 0) summary += `롯데월드 성: ${resultCounts["롯데월드 성"]}개 `;
-            if(resultCounts["너구리"] > 0) summary += `너구리: ${resultCounts["너구리"]}개 `;
-            if(resultCounts["틀린 사진"] > 0) summary += `틀린 사진: ${resultCounts["틀린 사진"]}개 `;
+            let isFirst = true;
 
-            notThisLabel.innerHTML = `<div>총 ${uploadedFiles.length}장 판별 완료:</div><div>${summary.trim()}</div>`;
+            if(resultCounts["롯데월드 성"] > 0) {
+                summary += `롯데월드 성: ${resultCounts["롯데월드 성"]}개`;
+                isFirst = false;
+            }
+            if(resultCounts["너구리"] > 0) {
+                if (!isFirst) summary += `, `;
+                summary += `너구리: ${resultCounts["너구리"]}개`;
+                isFirst = false;
+            }
+            if(resultCounts["틀린 사진"] > 0) {
+                if (!isFirst) summary += `, `;
+                summary += `틀린 사진: ${resultCounts["틀린 사진"]}개`;
+            }
+
+            notThisLabel.innerHTML = `<div>총 ${uploadedFiles.length}장 판별 완료:</div><div style="margin-top:10px;">${summary.trim()}</div>`;
             notThisLabel.style.color = '#333'; // 요약 색상은 기본색으로
 
             // 각 이미지별 상세 결과 표시 (위에 만든 allResultsHtml 사용)
-            // notThisLabel.innerHTML += `<hr style="border-color:#eee;">${allResultsHtml}`; // 모든 결과를 한 줄씩 추가하고 싶다면 활성화
+            // if (allResultsHtml) {
+            //     notThisLabel.innerHTML += `<hr style="border-color:#eee; margin: 15px 0;">${allResultsHtml}`; // 모든 결과를 한 줄씩 추가하고 싶다면 활성화
+            // }
+
 
             // --- UI 전환: 3단계 -> 4단계 완료 ---
-            predictButton.textContent = "2. 사진 판별"; // 버튼 텍스트 복구
+            predictButton.textContent = "3. 사진 판별"; // 버튼 텍스트 복구
             predictButton.classList.add('active'); // 버튼 다시 활성화
             predictButton.disabled = false;
         }
