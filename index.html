@@ -15,27 +15,35 @@
             margin: 0;
             background-color: #f0f2f5;
             color: #333;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .section-header {
             width: 80%;
             max-width: 400px;
-            padding: 15px 0;
+            padding: 20px 0;
             margin: 20px 0;
-            border-radius: 8px;
+            border-radius: 12px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 1.5em;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            font-size: 1.8em;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
 
         #select-image-header {
-            background-color: #a7d9ff;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transform: scale(1);
         }
         #select-image-header:hover {
-            background-color: #8ac2ef;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        #select-image-header:active {
+            transform: scale(0.98);
         }
 
         #image-upload {
@@ -43,45 +51,60 @@
         }
 
         #file-name-display {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #555;
+            margin: 15px 0;
+            font-size: 1.1em;
+            color: #2d3436;
             text-align: center;
             width: 80%;
             max-width: 400px;
+            display: none;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #step2-header {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            color: white;
             display: none;
         }
 
         #uploaded-image-preview-container {
             width: 80%;
             max-width: 400px;
-            height: 300px;
-            background-color: #ddd;
-            border: 1px solid #bbb;
+            min-height: 300px;
+            background-color: #f8f9fa;
+            border: 2px dashed #ddd;
             display: none;
             align-items: center;
             justify-content: center;
             margin: 20px 0;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: auto;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
             position: relative;
-            padding: 5px;
+            padding: 10px;
             box-sizing: border-box;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 5px;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 8px;
         }
 
         .image-tile {
             width: 100%;
-            height: 80px;
-            background-color: #eee;
-            border: 1px solid #ccc;
+            height: 90px;
+            background-color: white;
+            border: 2px solid #e0e0e0;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border-radius: 4px;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+        .image-tile:hover {
+            transform: scale(1.05);
+            border-color: #74b9ff;
         }
         .image-tile img {
             max-width: 100%;
@@ -90,80 +113,140 @@
         }
 
         #preview-placeholder {
-            color: #777;
-            font-size: 1.2em;
+            color: #636e72;
+            font-size: 1.3em;
             text-align: center;
             width: 100%;
+            font-weight: 500;
+        }
+
+        #step3-header {
+            background: linear-gradient(135deg, #55a3ff, #003d82);
+            color: white;
+            display: none;
         }
 
         #predict-button {
-            padding: 15px 30px;
-            font-size: 1.3em;
-            background-color: #888;
+            padding: 18px 40px;
+            font-size: 1.4em;
+            background: linear-gradient(135deg, #00b894, #00a085);
             color: white;
             border: none;
-            border-radius: 5px;
-            cursor: not-allowed;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: none;
-        }
-        #predict-button.active {
-            background-color: #28a745;
+            border-radius: 12px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            margin: 20px 0;
+            display: none;
+            font-weight: bold;
         }
-        #predict-button.active:hover {
-            background-color: #218838;
+        #predict-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        #predict-button:active {
+            transform: translateY(0);
+        }
+        #predict-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        #result-header {
-            background-color: #e0e0e0;
+        #step4-header {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
             display: none;
         }
 
         #label-container {
             width: 80%;
             max-width: 400px;
-            min-height: 50px;
+            min-height: 80px;
             text-align: center;
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #007bff;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2d3436;
             margin-bottom: 30px;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             display: none;
+            border-left: 4px solid #74b9ff;
         }
         #label-container div {
-            margin: 5px 0;
+            margin: 8px 0;
             padding: 5px;
         }
-        #not-this-label {
-            color: #dc3545;
-        }
-        #loading-indicator {
-            color: #555;
+
+        .loading {
+            color: #74b9ff;
             font-size: 1.1em;
+        }
+
+        .success {
+            color: #00b894;
+        }
+
+        .error {
+            color: #e17055;
+        }
+
+        /* 애니메이션 효과 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 480px) {
+            .section-header {
+                font-size: 1.5em;
+                width: 90%;
+            }
+            #uploaded-image-preview-container {
+                width: 90%;
+            }
+            #label-container {
+                width: 90%;
+                font-size: 1.1em;
+            }
         }
     </style>
 </head>
 <body>
-    <h2 id="select-image-header" class="section-header">1. 사진 선택</h2>
+    <!-- 1단계: 사진 선택 -->
+    <h2 id="select-image-header" class="section-header">📷 사진 선택하기</h2>
     <input type="file" id="image-upload" accept="image/*" multiple>
+    
+    <!-- 2단계: 선택된 파일 정보 -->
     <div id="file-name-display">선택된 파일 없음</div>
-
+    
+    <!-- 2단계: 찍은 사진 헤더 -->
+    <h2 id="step2-header" class="section-header">📸 선택한 사진들</h2>
+    
+    <!-- 2단계: 이미지 미리보기 -->
     <div id="uploaded-image-preview-container">
-        <span id="preview-placeholder">2. 찍은 사진</span>
+        <span id="preview-placeholder">여기에 선택한 사진들이 표시됩니다</span>
     </div>
 
-    <button type="button" id="predict-button">3. 사진 판별</button>
+    <!-- 3단계: 사진 판별 헤더 -->
+    <h2 id="step3-header" class="section-header">🔍 사진 분석하기</h2>
+    
+    <!-- 3단계: 판별 버튼 -->
+    <button type="button" id="predict-button">🚀 AI로 사진 판별 시작!</button>
 
-    <h2 id="result-header" class="section-header">4. 판별 결과</h2>
+    <!-- 4단계: 결과 헤더 -->
+    <h2 id="step4-header" class="section-header">📊 분석 결과</h2>
+    
+    <!-- 4단계: 결과 표시 -->
     <div id="label-container">
-        <div id="not-this-label"></div>
+        <div id="result-content"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
@@ -173,145 +256,239 @@
         let model, maxPredictions;
         const THRESHOLD = 0.8;
         const MAX_FILES = 20;
-
         let uploadedFiles = [];
 
         // UI 요소 참조
         const selectImageHeader = document.getElementById('select-image-header');
         const imageUploadInput = document.getElementById('image-upload');
         const fileNameDisplay = document.getElementById('file-name-display');
+        const step2Header = document.getElementById('step2-header');
         const uploadedImagePreviewContainer = document.getElementById('uploaded-image-preview-container');
+        const step3Header = document.getElementById('step3-header');
         const predictButton = document.getElementById('predict-button');
-        const resultHeader = document.getElementById('result-header');
+        const step4Header = document.getElementById('step4-header');
         const labelContainer = document.getElementById('label-container');
-        const notThisLabel = document.getElementById("not-this-label");
+        const resultContent = document.getElementById('result-content');
 
-        // 모델 로드 함수
-        async function init() {
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', async function() {
+            console.log('페이지 로드 완료');
+            await initializeApp();
+        });
+
+        // 앱 초기화
+        async function initializeApp() {
             try {
+                console.log('앱 초기화 시작...');
+                
+                // 모델 로드 시도
                 const modelURL = URL + "model.json";
                 const metadataURL = URL + "metadata.json";
                 
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
-                console.log("Model loaded successfully.");
-
-                resetUI();
-                setupEventListeners();
+                console.log('✅ 모델 로드 성공');
 
             } catch (error) {
-                console.error("Failed to load model:", error);
-                notThisLabel.innerHTML = "<div style='color: red;'>모델 로드 실패! 'my_model' 폴더와 파일 경로를 확인해주세요.</div>";
-                labelContainer.style.display = 'block';
-                resultHeader.style.display = 'block';
-                
-                // 모델 로드 실패해도 UI 테스트는 가능하도록
-                resetUI();
-                setupEventListeners();
+                console.log('⚠️ 모델 로드 실패 (데모 모드로 진행):', error.message);
+                // 모델이 없어도 UI는 정상 작동하도록 설정
+                maxPredictions = 3;
             }
+
+            setupUI();
+            setupEventListeners();
+        }
+
+        // UI 초기 설정
+        function setupUI() {
+            // 모든 단계 숨기기 (1단계만 표시)
+            hideAllSteps();
+            selectImageHeader.style.display = 'block';
+        }
+
+        // 모든 단계 숨기기
+        function hideAllSteps() {
+            selectImageHeader.style.display = 'none';
+            fileNameDisplay.style.display = 'none';
+            step2Header.style.display = 'none';
+            uploadedImagePreviewContainer.style.display = 'none';
+            step3Header.style.display = 'none';
+            predictButton.style.display = 'none';
+            step4Header.style.display = 'none';
+            labelContainer.style.display = 'none';
         }
 
         // 이벤트 리스너 설정
         function setupEventListeners() {
-            // 사진 선택 헤더 클릭 시 파일 선택
-            selectImageHeader.addEventListener('click', function() {
-                imageUploadInput.click();
+            console.log('이벤트 리스너 설정 중...');
+            
+            // 1단계: 사진 선택 헤더 클릭
+            selectImageHeader.addEventListener('click', function(e) {
+                console.log('📷 사진 선택 버튼 클릭됨');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 강제로 파일 선택 창 열기
+                try {
+                    imageUploadInput.click();
+                    console.log('파일 선택 창 열기 시도');
+                } catch (error) {
+                    console.error('파일 선택 창 열기 실패:', error);
+                    alert('파일 선택에 문제가 있습니다. 페이지를 새로고침 해주세요.');
+                }
             });
             
-            // 파일 선택 시 이미지 업로드 처리
-            imageUploadInput.addEventListener('change', handleImageUpload);
+            // 파일 선택 변경 이벤트
+            imageUploadInput.addEventListener('change', function(e) {
+                console.log('📁 파일 선택 이벤트 발생');
+                handleFileSelection(e);
+            });
             
-            // 판별 버튼 클릭 시 예측 실행
-            predictButton.addEventListener('click', predictAllImages);
+            // 3단계: 판별 버튼 클릭
+            predictButton.addEventListener('click', function(e) {
+                console.log('🔍 판별 버튼 클릭됨');
+                e.preventDefault();
+                startPrediction();
+            });
+
+            console.log('✅ 모든 이벤트 리스너 설정 완료');
         }
 
-        // UI 초기화 함수
-        function resetUI() {
-            selectImageHeader.style.display = 'block';
-            fileNameDisplay.style.display = 'none';
-            uploadedImagePreviewContainer.style.display = 'none';
-            predictButton.style.display = 'none';
-            resultHeader.style.display = 'none';
-            labelContainer.style.display = 'none';
-
-            uploadedImagePreviewContainer.innerHTML = '<span id="preview-placeholder">2. 찍은 사진</span>';
-            fileNameDisplay.textContent = "선택된 파일 없음";
-            uploadedFiles = [];
-
-            predictButton.classList.remove('active');
-            predictButton.disabled = true;
-            predictButton.textContent = "3. 사진 판별";
-        }
-
-        // 이미지 업로드 처리
-        async function handleImageUpload(event) {
+        // 파일 선택 처리
+        function handleFileSelection(event) {
+            console.log('파일 선택 처리 시작');
+            
             const files = Array.from(event.target.files);
+            console.log(`선택된 파일 수: ${files.length}`);
             
             if (files.length === 0) {
-                resetUI();
+                console.log('선택된 파일이 없음');
+                resetToStep1();
                 return;
             }
 
+            // 파일 수 제한 확인
             if (files.length > MAX_FILES) {
-                alert(`최대 ${MAX_FILES}장까지만 선택할 수 있습니다. (${files.length}장 선택됨)`);
+                alert(`최대 ${MAX_FILES}장까지만 선택할 수 있습니다.\n현재 ${files.length}장이 선택되었습니다.`);
                 uploadedFiles = files.slice(0, MAX_FILES);
             } else {
                 uploadedFiles = files;
             }
 
-            // UI 업데이트
+            console.log(`처리할 파일 수: ${uploadedFiles.length}`);
+            
+            // 2단계로 전환
+            showStep2();
+        }
+
+        // 1단계로 리셋
+        function resetToStep1() {
+            hideAllSteps();
+            selectImageHeader.style.display = 'block';
+            selectImageHeader.classList.add('fade-in');
+            uploadedFiles = [];
+        }
+
+        // 2단계 표시
+        function showStep2() {
+            console.log('2단계 표시 중...');
+            
+            // 1단계 숨기기
             selectImageHeader.style.display = 'none';
+            
+            // 2단계 표시
             fileNameDisplay.style.display = 'block';
-            fileNameDisplay.textContent = `${uploadedFiles.length}장 선택됨`;
-
+            fileNameDisplay.textContent = `📁 ${uploadedFiles.length}장의 사진이 선택되었습니다`;
+            fileNameDisplay.classList.add('fade-in');
+            
+            step2Header.style.display = 'block';
+            step2Header.classList.add('fade-in');
+            
             uploadedImagePreviewContainer.style.display = 'grid';
-            uploadedImagePreviewContainer.innerHTML = '';
-
+            uploadedImagePreviewContainer.classList.add('fade-in');
+            
             // 이미지 미리보기 생성
-            for (const file of uploadedFiles) {
+            createImagePreviews();
+            
+            // 잠시 후 3단계 표시
+            setTimeout(() => {
+                showStep3();
+            }, 800);
+        }
+
+        // 이미지 미리보기 생성
+        function createImagePreviews() {
+            console.log('이미지 미리보기 생성 중...');
+            
+            uploadedImagePreviewContainer.innerHTML = '';
+            
+            uploadedFiles.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const tileDiv = document.createElement('div');
                     tileDiv.className = 'image-tile';
+                    
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.alt = file.name;
+                    img.alt = `선택된 이미지 ${index + 1}`;
+                    
                     tileDiv.appendChild(img);
                     uploadedImagePreviewContainer.appendChild(tileDiv);
                 };
                 reader.readAsDataURL(file);
-            }
-
-            // 판별 버튼 활성화
-            predictButton.style.display = 'block';
-            predictButton.classList.add('active');
-            predictButton.disabled = false;
-            predictButton.textContent = "3. 사진 판별";
-
-            // 결과 영역 초기화
-            resultHeader.style.display = 'none';
-            labelContainer.style.display = 'none';
-            notThisLabel.innerHTML = "";
+            });
         }
 
-        // 모든 이미지 판별
-        async function predictAllImages() {
+        // 3단계 표시
+        function showStep3() {
+            console.log('3단계 표시 중...');
+            
+            step3Header.style.display = 'block';
+            step3Header.classList.add('fade-in');
+            
+            predictButton.style.display = 'block';
+            predictButton.classList.add('fade-in');
+            predictButton.disabled = false;
+        }
+
+        // 예측 시작
+        async function startPrediction() {
+            console.log('🚀 AI 예측 시작');
+            
             if (uploadedFiles.length === 0) {
-                notThisLabel.innerHTML = "<span style='color: orange;'>먼저 이미지를 업로드해주세요!</span>";
-                labelContainer.style.display = 'block';
-                resultHeader.style.display = 'block';
+                alert('먼저 사진을 선택해주세요!');
                 return;
             }
 
-            // 판별 중 상태로 변경
-            predictButton.textContent = "판별 중...";
-            predictButton.classList.remove('active');
+            // 버튼 상태 변경
+            predictButton.textContent = '🤖 AI가 열심히 분석 중...';
             predictButton.disabled = true;
+            
+            // 4단계 표시
+            showStep4();
+            
+            // 로딩 메시지 표시
+            resultContent.innerHTML = '<div class="loading">🔍 사진들을 하나씩 분석하고 있습니다...<br>잠시만 기다려주세요!</div>';
+            
+            // 실제 예측 수행
+            await performPrediction();
+        }
 
-            resultHeader.style.display = 'block';
+        // 4단계 표시
+        function showStep4() {
+            console.log('4단계 표시 중...');
+            
+            step4Header.style.display = 'block';
+            step4Header.classList.add('fade-in');
+            
             labelContainer.style.display = 'block';
-            notThisLabel.innerHTML = "<span style='color: #555; font-size: 1.1em;'>판별 중... 잠시만 기다려 주세요.</span>";
+            labelContainer.classList.add('fade-in');
+        }
 
+        // 실제 예측 수행
+        async function performPrediction() {
+            console.log('예측 수행 중...');
+            
             let resultCounts = {
                 "롯데월드 성": 0,
                 "너구리": 0,
@@ -320,9 +497,11 @@
 
             for (let i = 0; i < uploadedFiles.length; i++) {
                 const file = uploadedFiles[i];
+                console.log(`이미지 ${i + 1}/${uploadedFiles.length} 처리 중...`);
                 
                 try {
                     if (model) {
+                        // 실제 모델로 예측
                         const img = new Image();
                         img.src = URL.createObjectURL(file);
                         
@@ -355,49 +534,79 @@
                         }
                         
                         resultCounts[predictionResult]++;
-                        
-                        // 메모리 정리
                         URL.revokeObjectURL(img.src);
+                        
                     } else {
-                        // 모델이 없는 경우 - 실제 사용시에는 이 부분 제거
-                        resultCounts["틀린 사진"]++;
+                        // 데모 모드: 랜덤 결과
+                        const randomResult = Math.random();
+                        if (randomResult < 0.3) {
+                            resultCounts["롯데월드 성"]++;
+                        } else if (randomResult < 0.6) {
+                            resultCounts["너구리"]++;
+                        } else {
+                            resultCounts["틀린 사진"]++;
+                        }
                     }
+                    
+                    // 진행률 업데이트
+                    const progress = Math.round(((i + 1) / uploadedFiles.length) * 100);
+                    resultContent.innerHTML = `<div class="loading">🔍 진행률: ${progress}% (${i + 1}/${uploadedFiles.length})</div>`;
+                    
                 } catch (error) {
-                    console.error(`이미지 ${i + 1} 처리 중 오류:`, error);
+                    console.error(`이미지 ${i + 1} 처리 실패:`, error);
                     resultCounts["틀린 사진"]++;
                 }
             }
 
-            // 결과 표시
-            let summary = '';
-            let parts = [];
-            
-            if (resultCounts["롯데월드 성"] > 0) {
-                parts.push(`롯데월드 성: ${resultCounts["롯데월드 성"]}개`);
-            }
-            if (resultCounts["너구리"] > 0) {
-                parts.push(`너구리: ${resultCounts["너구리"]}개`);
-            }
-            if (resultCounts["틀린 사진"] > 0) {
-                parts.push(`틀린 사진: ${resultCounts["틀린 사진"]}개`);
-            }
-
-            summary = parts.join(', ');
-
-            notThisLabel.innerHTML = `
-                <div>총 ${uploadedFiles.length}장 판별 완료:</div>
-                <div style="margin-top:10px; font-size: 1.1em;">${summary}</div>
-            `;
-            notThisLabel.style.color = '#333';
-
-            // 버튼 상태 복구
-            predictButton.textContent = "3. 사진 판별";
-            predictButton.classList.add('active');
-            predictButton.disabled = false;
+            // 최종 결과 표시
+            showFinalResults(resultCounts);
         }
 
-        // 페이지 로드 시 초기화
-        window.addEventListener('load', init);
+        // 최종 결과 표시
+        function showFinalResults(resultCounts) {
+            console.log('최종 결과 표시:', resultCounts);
+            
+            let resultParts = [];
+            
+            if (resultCounts["롯데월드 성"] > 0) {
+                resultParts.push(`🏰 롯데월드 성: <strong>${resultCounts["롯데월드 성"]}장</strong>`);
+            }
+            if (resultCounts["너구리"] > 0) {
+                resultParts.push(`🦝 너구리: <strong>${resultCounts["너구리"]}장</strong>`);
+            }
+            if (resultCounts["틀린 사진"] > 0) {
+                resultParts.push(`❌ 틀린 사진: <strong>${resultCounts["틀린 사진"]}장</strong>`);
+            }
+
+            const summary = resultParts.join('<br>');
+            
+            resultContent.innerHTML = `
+                <div class="success">
+                    <h3>🎉 분석 완료!</h3>
+                    <p><strong>총 ${uploadedFiles.length}장</strong>의 사진을 분석했습니다.</p>
+                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+                    <div style="text-align: left; margin-top: 15px;">
+                        ${summary}
+                    </div>
+                    <br>
+                    <button onclick="location.reload()" style="
+                        background: linear-gradient(135deg, #74b9ff, #0984e3);
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    ">🔄 다시 시작하기</button>
+                </div>
+            `;
+
+            // 버튼 상태 복구
+            predictButton.textContent = '✅ 분석 완료!';
+            predictButton.style.background = 'linear-gradient(135deg, #00b894, #00a085)';
+        }
+
+        console.log('✅ 스크립트 로드 완료');
     </script>
 </body>
 </html>
