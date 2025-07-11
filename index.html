@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine Image Classifier</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 1.2em; margin-bottom: 20px; cursor: pointer; }
+        #webcam-container { border: 1px solid #ccc; margin-bottom: 10px; }
+        #label-container div { margin-bottom: 5px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div>Teachable Machine Image Model</div>
+    <button type="button" onclick="init()">Start</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        // More API functions here:
+        // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+        // the link to your model provided by Teachable Machine export panel
+        const URL = "./my_model/";
+
+        let model, webcam, labelContainer, maxPredictions;
+        const THRESHOLD = 0.8; // 0.8 (80%) 이상일 때만 판별
+
+        // Load the image model and setup the webcam
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true; // whether to flip the webcam
+            webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+            await webcam.setup(); // request access to the webcam
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            // 모든 예측 레이블을 위한 div를 미리 생성 (최대 클래스 개수만큼)
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+            // "이건 아닙니다."를 표시할 추가 div도 미리 생성해 둡니다.
+            const notThisDiv = document.createElement("div");
+            notThisDiv.id = "not-this-label"; // ID를 명확하게 지정
+            labelContainer.appendChild(notThisDiv);
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+
+            // 먼저 모든 예측 레이블과 "이건 아닙니다." 레이블을 초기화합니다.
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.childNodes[i].innerHTML = "";
+            }
+            document.getElementById("not-this-label").innerHTML = "";
+
+            // 가장 높은 확률을 가진 클래스를 찾습니다.
+            let maxProbability = 0;
+            let bestPredictionIndex = -1;
+
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > maxProbability) {
+                    maxProbability = prediction[i].probability;
+                    bestPredictionIndex = i;
+                }
+            }
+
+            // 가장 높은 확률이 THRESHOLD 이상인지 확인합니다.
+            if (bestPredictionIndex !== -1 && maxProbability >= THRESHOLD) {
+                // 특정 클래스로 판별될 경우, 해당 클래스의 레이블만 업데이트
+                const classPrediction =
+                    prediction[bestPredictionIndex].className + ": " + (maxProbability * 100).toFixed(0) + "%"; // 확률을 %로 표시
+                labelContainer.childNodes[bestPredictionIndex].innerHTML = classPrediction;
+            } else {
+                // 0.8 이상인 클래스가 없으면 "이건 아닙니다."를 표시합니다.
+                document.getElementById("not-this-label").innerHTML = "이건 아닙니다.";
+            }
+        }
+    </script>
+</body>
+</html>
