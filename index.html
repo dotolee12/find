@@ -13,7 +13,7 @@
             justify-content: center;
             min-height: 100vh; /* 뷰포트 전체 높이를 사용 */
             margin: 0;
-            background-color: #f0f2f5;
+            background-color: #ffffff;
             color: #333;
         }
 
@@ -28,30 +28,29 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 파일 선택 버튼 스타일 */
-        #image-upload-container {
+        /* "1. 사진 선택" 헤더를 클릭 가능하도록 스타일링 */
+        #select-image-header {
+            background-color: #a7d9ff; /* 기존 색상 유지 */
+            cursor: pointer; /* 클릭 가능한 모양 */
+            transition: background-color 0.3s ease;
+        }
+        #select-image-header:hover {
+            background-color: #8ac2ef; /* 호버 시 색상 변경 */
+        }
+
+        /* 파일 입력 필드는 완전히 숨김 */
+        #image-upload {
+            display: none;
+        }
+
+        /* 파일 이름 표시 영역 */
+        #file-name-display {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+            text-align: center;
             width: 80%;
             max-width: 400px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #image-upload {
-            display: none; /* 실제 파일 입력 필드를 숨김 */
-        }
-        .custom-file-upload {
-            display: inline-block;
-            padding: 12px 25px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.1em;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .custom-file-upload:hover {
-            background-color: #0056b3;
         }
 
         /* 이미지 미리보기 영역 */
@@ -64,17 +63,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin: 20px 0; /* 상하 마진 추가 */
             border-radius: 8px;
-            overflow: hidden; /* 이미지가 영역을 벗어나지 않도록 */
+            overflow: hidden;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-            position: relative; /* 텍스트 위치를 위해 */
+            position: relative;
         }
         #uploaded-image-preview {
             max-width: 100%;
             max-height: 100%;
             display: none; /* 초기에는 숨김 */
-            object-fit: contain; /* 비율 유지하며 컨테이너에 맞춤 */
+            object-fit: contain;
         }
         #preview-placeholder {
             position: absolute;
@@ -99,7 +98,7 @@
         #label-container {
             width: 80%;
             max-width: 400px;
-            min-height: 50px; /* 결과가 없어도 공간 유지 */
+            min-height: 50px;
             text-align: center;
             font-size: 1.3em;
             font-weight: bold;
@@ -117,7 +116,6 @@
         #not-this-label {
             color: #dc3545; /* "이건 아닙니다."는 빨간색 */
         }
-
 
         /* 사진 판별 버튼 */
         #predict-button {
@@ -139,14 +137,10 @@
 </head>
 <body>
 
-    <h2>Teachable Machine Image Model (사진 업로드)</h2>
+    <h2 id="select-image-header" onclick="document.getElementById('image-upload').click();">1. 사진 선택</h2>
+    <input type="file" id="image-upload" accept="image/*">
+    <div id="file-name-display">선택된 파일 없음</div>
 
-    <h2 style="background-color: #a7d9ff;">1. 사진 선택</h2>
-    <div id="image-upload-container">
-        <label for="image-upload" class="custom-file-upload">파일 선택</label>
-        <input type="file" id="image-upload" accept="image/*">
-        <div id="file-name-display" style="margin-top: 10px; font-size: 0.9em; color: #555;">선택된 파일 없음</div>
-    </div>
 
     <div id="uploaded-image-preview-container">
         <img id="uploaded-image-preview" src="#" alt="업로드된 이미지 미리보기">
@@ -177,8 +171,6 @@
                 maxPredictions = model.getTotalClasses();
 
                 labelContainer = document.getElementById("label-container");
-                // 모든 예측 레이블 div는 필요 없으므로, 결과는 #not-this-label에만 표시
-                // 이 부분은 지웁니다: for (let i = 0; i < maxPredictions; i++) { labelContainer.appendChild(document.createElement("div")); }
                 document.getElementById("not-this-label").innerHTML = "사진을 업로드하고 판별해주세요."; // 초기 메시지
 
                 // 파일 입력 감지
@@ -231,6 +223,7 @@
 
             // 판별 중 메시지
             notThisLabel.innerHTML = "판별 중...";
+            notThisLabel.style.color = '#555'; // 판별 중 메시지 색상
 
             const prediction = await model.predict(imgElement);
 
