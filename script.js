@@ -1,5 +1,7 @@
 /**
- * 길로아 (Giloa) - stable build with time-decay tint system
+ * 길로아 (Giloa) - 기억 휘발 시스템 안정판
+ * 이동 흔적: 초기 100% -> 6시간 후 40% 영구 잔상
+ * 체류 반경: 10분 미만 18m, 20분 20m, 30분 22m, 60분 24m, 120분 이상 26m
  */
 const STORAGE_KEY = "giloa-v7";
 const FOG_ENABLED_KEY = "giloa-fog-enabled";
@@ -13,7 +15,10 @@ const SAVE_DELAY_MS = 800;
 const MERGE_DISTANCE_M = 6;
 const MERGE_TIME_GAP_MS = 2 * 60 * 1000;
 const MAX_PATH_POINTS = 5000;
-const DECAY_RATE_PER_HOUR = 0.01;
+
+const START_ALPHA = 1.0;
+const FINAL_ALPHA = 0.4;
+const DECAY_RATE_PER_HOUR = 0.1;
 
 let isRecording = false;
 let isFogEnabled = true;
@@ -225,6 +230,7 @@ function renderStayTint() {
             const prevStayMin = (pathCoordinates[index - 1].endTime - pathCoordinates[index - 1].startTime) / 60000;
             const prevRadius = getMetersToPixels(getStayRadiusMeters(prevStayMin));
             const linkRadius = Math.max(radius, prevRadius);
+
             const dx = pos.x - prev.x;
             const dy = pos.y - prev.y;
             const len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -266,40 +272,23 @@ function renderStayTint() {
 function getAgeColor(startTime) {
     const now = Date.now();
     const hoursAgo = (now - startTime) / 3600000;
-    let alpha = 0.2 - hoursAgo * DECAY_RATE_PER_HOUR;
-    alpha = Math.max(0, alpha);
 
-    if (alpha <= 0) return null;
-    if (hoursAgo < 5) return `rgba(60, 170, 80, ${alpha})`;
-    if (hoursAgo < 12) return `rgba(214, 176, 55, ${alpha})`;
+    let alpha = START_ALPHA - hoursAgo * DECAY_RATE_PER_HOUR;
+    alpha = Math.max(FINAL_ALPHA, alpha);
+
+    if (hoursAgo < 2) return `rgba(60, 170, 80, ${alpha})`;
+    if (hoursAgo < 6) return `rgba(214, 176, 55, ${alpha})`;
     return `rgba(130, 92, 55, ${alpha})`;
 }
 
 function getStayColor(stayMin, startTime) {
     const now = Date.now();
     const hoursAgo = (now - startTime) / 3600000;
-    let alphaBase = 0.25 - hoursAgo * DECAY_RATE_PER_HOUR;
-    alphaBase = Math.max(0, alphaBase);
 
-    if (alphaBase <= 0) return null;
+    let alphaBase = START_ALPHA - hoursAgo * DECAY_RATE_PER_HOUR;
+    alphaBase = Math.max(FINAL_ALPHA, alphaBase);
 
     const centerAlpha = Math.min(alphaBase + 0.1, 1);
-
-    if (stayMin >= 10 && stayMin < 30) {
-        return {
-            center: `rgba(135, 206, 235, ${centerAlpha})`,
-            mid: `rgba(135, 206, 235, ${alphaBase})`,
-            edge: "rgba(135, 206, 235, 0)"
-        };
-    }
-
-    if (stayMin >= 30 && stayMin < 60) {
-        return {
-            center: `rgba(70, 130, 255, ${centerAlpha})`,
-            mid: `rgba(70, 130, 255, ${alphaBase})`,
-            edge: "rgba(70, 130, 255, 0)"
-        };
-    }
 
     if (stayMin >= 60) {
         return {
@@ -309,32 +298,46 @@ function getStayColor(stayMin, startTime) {
         };
     }
 
+    if (stayMin >= 30) {
+        return {
+            center: `rgba(70, 130, 255, ${centerAlpha})`,
+            mid: `rgba(70, 130, 255, ${alphaBase})`,
+            edge: "rgba(70, 130, 255, 0)"
+        };
+    }
+
+    if (stayMin >= 10) {
+        return {
+            center: `rgba(135, 206, 235, ${centerAlpha})`,
+            mid: `rgba(135, 206, 235, ${alphaBase})`,
+            edge: "rgba(135, 206, 235, 0)"
+        };
+    }
+
     return null;
 }
 
 function getStayRadiusMeters(stayMin) {
-    const baseRadius = FOG_RADIUS_M;
-
-    if (stayMin < 10) return baseRadius;
+    if (stayMin < 10) return 18;
 
     if (stayMin < 20) {
         const t = (stayMin - 10) / 10;
-        return baseRadius + 2 * t;
+        return 18 + (20 - 18) * t;
     }
 
     if (stayMin < 30) {
         const t = (stayMin - 20) / 10;
-        return 20 + 2 * t;
+        return 20 + (22 - 20) * t;
     }
 
     if (stayMin < 60) {
         const t = (stayMin - 30) / 30;
-        return 22 + 2 * t;
+        return 22 + (24 - 22) * t;
     }
 
     if (stayMin < 120) {
         const t = (stayMin - 60) / 60;
-        return 24 + 2 * t;
+        return 24 + (26 - 24) * t;
     }
 
     return 26;
