@@ -1,34 +1,63 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>길로아 (Giloa) - 인생 지도</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>New Daedongyeojido - Project Giloa</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <div id="map"></div>
-    
-    <canvas id="fog-canvas"></canvas>
-    <canvas id="age-canvas"></canvas>
-    <canvas id="stay-canvas"></canvas>
-    <div id="overlay-layer"></div>
 
+<div id="sidebar">
+    <div class="sidebar-header">
+        <h2>나의 기록들</h2>
+        <span onclick="toggleSidebar(false)" class="close-btn">✕</span>
+    </div>
+    <div id="memory-list-container">
+        <p class="empty-message">아직 기록이 없습니다.</p>
+    </div>
+</div>
+<div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
+<div id="map-wrap"><div id="map"></div></div>
+<canvas id="fog-canvas"></canvas>
+<canvas id="age-canvas"></canvas>
+<canvas id="stay-canvas"></canvas>
+
+<div id="top-bar">
+    <div id="ham-btn" onclick="toggleSidebar()">
+        <div class="hline"></div>
+        <div class="hline"></div>
+        <div class="hline"></div>
+    </div>
     <div id="rec-status-box">대기 중</div>
-    <div id="memory-info-box"></div>
-    
-    <div class="controls">
-        <button id="rec-btn" onclick="toggleRecording()">● 기록</button>
-        <button id="memo-btn" onclick="addMemory()">★ 메모</button>
-        <button id="center-btn" onclick="centerMap()">🎯</button>
-    </div>
+</div>
 
-    <div id="stats">
-        거리: <span id="dist-val">0.00</span>km | 메모: <span id="memo-val">0</span>
+<div id="controls">
+    <div id="rec-btn" class="btn" onclick="toggleRecording()">
+        <div class="icon-rec"></div>
+        <div class="icon-stop"></div>
     </div>
+    <div id="memo-btn" class="btn" onclick="addMemory()">★</div>
+    <div id="loc-btn" class="btn" onclick="centerMap()">
+        <div class="icon-loc"></div>
+    </div>
+    <div id="fog-btn" class="btn" onclick="toggleFog()">☁</div>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+<div id="hud">
+    <div class="stat">
+        <div class="label">TOTAL DISTANCE</div>
+        <div id="dist-val" class="value">0.00<span>km</span></div>
+    </div>
+    <div class="stat">
+        <div class="label">MEMORIES</div>
+        <div id="memo-val" class="value">0</div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./script.js"></script>
 </body>
 </html>
