@@ -291,23 +291,14 @@ function getStayColor(stayMin) {
 }
 
 function getStayRadiusMeters(stayMin) {
-    const baseRadius = FOG_RADIUS_M + 2;
-    const maxRadius = baseRadius * 1.5;
+    const baseRadius = FOG_RADIUS_M;
 
-    if (stayMin < 10) return baseRadius;
+    if (stayMin < 30) return baseRadius;
+    if (stayMin >= 180) return baseRadius * 2;
 
-    if (stayMin < 30) {
-        const t = (stayMin - 10) / 20;
-        return baseRadius + (maxRadius - baseRadius) * (t * 0.4);
-    }
-
-    if (stayMin < 60) {
-        const t = (stayMin - 30) / 30;
-        return baseRadius + (maxRadius - baseRadius) * (0.4 + t * 0.35);
-    }
-
-    const extra = Math.min((stayMin - 60) / 60, 1);
-    return baseRadius + (maxRadius - baseRadius) * (0.75 + extra * 0.25);
+    const progress = (stayMin - 30) / (180 - 30);
+    const scale = 1.2 + 0.8 * progress;
+    return baseRadius * scale;
 }
 
 function getMetersToPixels(meters) {
