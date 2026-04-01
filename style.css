@@ -474,8 +474,6 @@ html, body {
 .popup-delete-btn:hover { background: #ff3333; }
 
 /* Leaflet 팝업 */
-.leaflet-popup { z-index: 2000 !important; }
-
 .leaflet-popup-content-wrapper {
     background: rgba(20, 20, 30, 0.95) !important;
     color: #fff !important;
