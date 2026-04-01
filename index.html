@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>나의 대동여지도 - Project Giloa</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="./style.css">
 </head>
@@ -24,6 +28,35 @@
                 </div>
             </div>
         </div>
+        <div class="sidebar-divider"></div>
+
+        <!-- 경로 저장 -->
+        <div onclick="saveRoute()" class="sidebar-action-btn">
+            <span>💾</span>
+            <span>경로 저장</span>
+        </div>
+
+        <!-- 저장된 경로 불러오기 -->
+        <div onclick="document.getElementById('route-input').click()"
+            class="sidebar-action-btn blue">
+            <span>📂</span>
+            <span>저장된 경로 불러오기</span>
+        </div>
+
+        <!-- 불러온 경로 제거 -->
+        <div id="clear-route-btn"
+            onclick="clearLoadedRoute()"
+            class="sidebar-action-btn red"
+            style="display:none;">
+            <span>🗑</span>
+            <span>불러온 경로 제거</span>
+        </div>
+
+        <input type="file" id="route-input"
+            accept=".json"
+            style="display:none"
+            onchange="loadRoute(event)">
+
         <div class="sidebar-divider"></div>
     </div>
     <div id="memory-list-container">
@@ -51,11 +84,20 @@
         <div class="icon-rec"></div>
         <div class="icon-stop"></div>
     </div>
+    <div id="photo-btn" class="btn"
+        onclick="document.getElementById('camera-input').click()"
+        title="사진 올리기">🖼</div>
     <div id="memo-btn" class="btn" onclick="addMemory()">★</div>
     <div id="loc-btn" class="btn" onclick="centerMap()">
         <div class="icon-loc"></div>
     </div>
 </div>
+
+<input type="file" id="camera-input"
+    accept="image/*"
+    capture="environment"
+    style="display:none"
+    onchange="handlePhoto(event)">
 
 <div id="help-btn" onclick="toggleHelp()">?</div>
 
@@ -78,7 +120,7 @@
     </div>
     <div id="hud-basic">
         <div class="stat">
-            <div class="label">TOTAL DISTANCE</div>
+            <div class="label">전체 이동 거리</div>
             <div id="dist-val" class="value">0.00<span>km</span></div>
         </div>
         <div class="stat">
@@ -89,11 +131,25 @@
             <div class="label">기억 저장 수</div>
             <div id="memory-count-val" class="value">0<span>개</span></div>
         </div>
+        <div class="stat">
+            <div class="label">사진 저장 수</div>
+            <div id="photo-count-val" class="value">0<span>개</span></div>
+        </div>
     </div>
 </div>
 
-<input type="file" id="camera-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="./script.js"></script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(() => console.log('SW 등록 완료'))
+                .catch(e => console.warn('SW 등록 실패', e));
+        });
+    }
+</script>
+
 </body>
-</html
+</html>
