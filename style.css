@@ -11,6 +11,7 @@ html, body {
 #map-wrap { position: absolute; inset: 0; z-index: 1; }
 #map { width: 100%; height: 100%; filter: grayscale(0.12) contrast(1.04); }
 
+/* 안개 캔버스들 - 마커보다 아래로 */
 #fog-canvas,
 #age-canvas,
 #stay-canvas {
@@ -19,14 +20,18 @@ html, body {
     width: 100%; height: 100%;
     pointer-events: none;
 }
-#fog-canvas  { z-index: 400; }
-#age-canvas  { z-index: 401; }
-#stay-canvas { z-index: 402; }
+#fog-canvas  { z-index: 250; }
+#age-canvas  { z-index: 251; }
+#stay-canvas { z-index: 252; }
+
+/* Leaflet 기본 레이어들 */
+.leaflet-map-pane    { z-index: 400 !important; }
+.leaflet-tile-pane   { z-index: 200 !important; }
 
 /* 마커를 안개 위로 */
-.leaflet-marker-pane  { z-index: 450 !important; }
-.leaflet-popup-pane   { z-index: 451 !important; }
-.leaflet-tooltip-pane { z-index: 452 !important; }
+.leaflet-marker-pane  { z-index: 600 !important; }
+.leaflet-popup-pane   { z-index: 700 !important; }
+.leaflet-tooltip-pane { z-index: 800 !important; }
 
 /* 상단 바 */
 #top-bar {
