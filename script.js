@@ -107,7 +107,7 @@ function renderFog() {
 
     const now    = Date.now();
     const mpp    = calcMpp();
-    const radius = metersToPixels(FOG_RADIUS_M, mpp);
+    const baseRadius = metersToPixels(FOG_RADIUS_M, mpp);
 
     fogCtx.save();
     fogCtx.globalCompositeOperation = "destination-out";
@@ -116,19 +116,45 @@ function renderFog() {
         const ageHours = (now - point.startTime) / 3600000;
         fogCtx.globalAlpha = getPathVisibility(ageHours);
 
+        // 체류 시간 계산 (밀리초 → 분)
+        const stayMinutes = (point.endTime - point.startTime) / 60000;
+        
+        // 체류 시간에 따라 반지름 증가
+        let radius = baseRadius;
+        if (stayMinutes >= 10) {
+            const maxStayMinutes = 180; // 3시간
+            const stayFactor = Math.min(stayMinutes / maxStayMinutes, 1);
+            // 10분 이상 머물면 최대 2배까지 커짐
+            radius = baseRadius * (1 + stayFactor);
+        }
+
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
 
+        // 원형으로 안개 걷히기
         fogCtx.beginPath();
         fogCtx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
         fogCtx.fill();
 
+        // 이전 점과 연결 (경로)
         if (i > 0) {
             const prev = map.latLngToContainerPoint([
                 pathCoordinates[i - 1].lat,
                 pathCoordinates[i - 1].lng
             ]);
+            
+            // 이전 점의 체류 시간도 고려
+            const prevStayMinutes = (pathCoordinates[i-1].endTime - pathCoordinates[i-1].startTime) / 60000;
+            let prevRadius = baseRadius;
+            if (prevStayMinutes >= 10) {
+                const prevStayFactor = Math.min(prevStayMinutes / 180, 1);
+                prevRadius = baseRadius * (1 + prevStayFactor);
+            }
+            
+            // 두 점의 평균 반지름 사용
+            const avgRadius = (radius + prevRadius) / 2;
+            
             fogCtx.beginPath();
-            fogCtx.lineWidth  = radius * 1.7;
+            fogCtx.lineWidth  = avgRadius * 1.7;
             fogCtx.lineCap    = "round";
             fogCtx.lineJoin   = "round";
             fogCtx.moveTo(prev.x, prev.y);
@@ -154,7 +180,7 @@ function renderAgeTint() {
 
     const now    = Date.now();
     const mpp    = calcMpp();
-    const radius = metersToPixels(FOG_RADIUS_M, mpp);
+    const baseRadius = metersToPixels(FOG_RADIUS_M, mpp);
 
     ageCtx.save();
     ageCtx.globalCompositeOperation = "screen";
@@ -163,6 +189,14 @@ function renderAgeTint() {
         const ageDays = (now - point.startTime) / 86400000;
         const color   = getAgeColor(ageDays);
         if (!color) return;
+
+        // 체류 시간에 따라 반지름 증가 (age-canvas도 동일하게)
+        const stayMinutes = (point.endTime - point.startTime) / 60000;
+        let radius = baseRadius;
+        if (stayMinutes >= 10) {
+            const stayFactor = Math.min(stayMinutes / 180, 1);
+            radius = baseRadius * (1 + stayFactor);
+        }
 
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
 
@@ -178,9 +212,18 @@ function renderAgeTint() {
             const prevAgeDays = (now - prev.startTime) / 86400000;
             if (getAgeColor(prevAgeDays) !== color) return;
 
+            const prevStayMinutes = (prev.endTime - prev.startTime) / 60000;
+            let prevRadius = baseRadius;
+            if (prevStayMinutes >= 10) {
+                const prevStayFactor = Math.min(prevStayMinutes / 180, 1);
+                prevRadius = baseRadius * (1 + prevStayFactor);
+            }
+
+            const avgRadius = (radius + prevRadius) / 2;
             const prevPos = map.latLngToContainerPoint([prev.lat, prev.lng]);
+            
             ageCtx.beginPath();
-            ageCtx.lineWidth  = radius * 1.15;
+            ageCtx.lineWidth  = avgRadius * 1.15;
             ageCtx.lineCap    = "round";
             ageCtx.lineJoin   = "round";
             ageCtx.moveTo(prevPos.x, prevPos.y);
@@ -384,13 +427,13 @@ function calcTodayDistance() {
 function updateStats() {
     const todayDist = calcTodayDistance();
     document.getElementById("dist-val").innerHTML =
-        `${(totalDistance / 1000).toFixed(2)}km`;
+        `${(totalDistance / 1000).toFixed(2)}<span>km</span>`;
     document.getElementById("today-dist-val").innerHTML =
-        `${(todayDist / 1000).toFixed(2)}km`;
+        `${(todayDist / 1000).toFixed(2)}<span>km</span>`;
     document.getElementById("memory-count-val").innerHTML =
-        `${memories.length}개`;
+        `${memories.length}<span>개</span>`;
     document.getElementById("photo-count-val").innerHTML =
-        `${photos.length}개`;
+        `${photos.length}<span>개</span>`;
 }
 
 function compactPathData() {
@@ -504,11 +547,7 @@ function updateMemoryList() {
     if (!container) return;
 
     if (memories.length === 0) {
-        container.innerHTML = '
-
-아직 기록이 없습니다.
-
-';
+        container.innerHTML = '<p class="empty-message">아직 기록이 없습니다.</p>';
         return;
     }
 
@@ -912,7 +951,7 @@ function getPhotoIconSize() {
 function createPhotoMarker(data, openPopup = false) {
     const makeIcon = (s) => L.divIcon({
         className: "photo-marker",
-        html: ``,
+        html: `<img src="${data.photo}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;border:2px solid #fff;">`,
         iconSize:  [s, s],
         iconAnchor:[s / 2, s]
     });
@@ -968,8 +1007,8 @@ function deletePhoto(id) {
 
 function escapeHtml(value) {
     return String(value)
-        .replace(/&/g, "&").replace(//g, ">").replace(/"/g, """)
-        .replace(/'/g, "'");
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function renderStoredMarkers() {
@@ -993,3 +1032,17 @@ function init() {
 }
 
 map.whenReady(() => init());
+```
+
+---
+
+## 🎉 완성!
+
+이제 **길로아 프로젝트 전체 코드**가 준비되었습니다!
+
+### 📦 최종 파일 구조
+```
+나의대동여지도/
+├── index.html    ✅
+├── style.css     ✅
+└── script.js     ✅
