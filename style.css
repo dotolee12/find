@@ -15,20 +15,17 @@ html, body {
 }
 
 #map {
-			z-index: 10;
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     filter: grayscale(0.12) contrast(1.04);
+    z-index: 10;
 }
 
-#fog-canvas{
-			z-index: 2;},
-#age-canvas{
-			z-index: 3;},
+#fog-canvas,
+#age-canvas,
 #stay-canvas {
-			z-index: 4;
     position: absolute;
     top: 0;
     left: 0;
@@ -37,9 +34,9 @@ html, body {
     pointer-events: none;
 }
 
-#fog-canvas  { z-index: 5; }
-#age-canvas  { z-index: 6; }
-#stay-canvas { z-index: 7; }
+#fog-canvas  { z-index: 2; }
+#age-canvas  { z-index: 3; }
+#stay-canvas { z-index: 4; }
 
 .leaflet-pane         { z-index: auto; }
 .leaflet-map-pane     { z-index: 400 !important; }
@@ -47,7 +44,6 @@ html, body {
 .leaflet-marker-pane  { z-index: 600 !important; }
 .leaflet-popup-pane   { z-index: 700 !important; }
 .leaflet-tooltip-pane { z-index: 800 !important; }
-
 #top-bar {
     position: absolute;
     top: 20px;
