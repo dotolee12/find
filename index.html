@@ -14,58 +14,72 @@
 <body>
 
 <div id="sidebar">
-    <div class="sidebar-header">
-        <h2>나의 기록들</h2>
-        <span onclick="toggleSidebar(false)" class="close-btn">✕</span>
-    </div>
 
-    <div id="fog-toggle-wrap">
-        <div class="fog-toggle-row" onclick="toggleFog()">
-            <span class="fog-toggle-label">어둠 효과</span>
-            <div class="fog-toggle-ui">
-                <span id="fog-toggle-state" class="fog-toggle-state on">켜짐</span>
+    <!-- 헤더: 탭 3개 + 닫기 -->
+    <div class="sidebar-header">
+        <div class="tab-row">
+            <button class="tab-btn tab-photo active" onclick="switchTab('photo')" title="사진 기록">
+                <span class="tab-icon">🖼</span>
+            </button>
+            <button class="tab-btn tab-memory" onclick="switchTab('memory')" title="별 기록">
+                <span class="tab-icon">★</span>
+            </button>
+            <button class="tab-btn tab-gpx" onclick="switchTab('gpx')" title="GPX 기록">
+                <span class="tab-icon">GPX</span>
+            </button>
+        </div>
+        <div class="header-right">
+            <!-- 어둠 토글 (아이콘형) -->
+            <div class="fog-mini-toggle" onclick="toggleFog()" title="어둠 효과">
                 <div id="fog-toggle-btn" class="toggle-switch on">
                     <div class="toggle-knob"></div>
                 </div>
             </div>
+            <span onclick="toggleSidebar(false)" class="close-btn">✕</span>
+        </div>
+    </div>
+
+    <!-- 사진 탭 -->
+    <div id="tab-photo" class="tab-panel active">
+        <div id="photo-list-container">
+            <p class="empty-message">사진 기록이 없습니다.</p>
+        </div>
+    </div>
+
+    <!-- 별 탭 -->
+    <div id="tab-memory" class="tab-panel">
+        <div id="memory-list-container">
+            <p class="empty-message">아직 기록이 없습니다.</p>
+        </div>
+    </div>
+
+    <!-- GPX 탭 -->
+    <div id="tab-gpx" class="tab-panel">
+        <div class="gpx-section">
+            <div class="gpx-section-label">경로 내보내기</div>
+            <div class="gpx-section-desc">최근 12시간 동안 걸은 경로를 GPX 파일로 저장해요.</div>
+            <button class="export-btn" onclick="exportGPX()">📥 GPX 다운로드</button>
+            <div id="export-info" class="export-info"></div>
         </div>
         <div class="sidebar-divider"></div>
+        <div class="gpx-section">
+            <div class="gpx-section-label">GPX 불러오기</div>
+            <div class="gpx-section-desc">저장한 GPX 파일을 열면 지도에 파란 선으로 표시해요.</div>
+            <button class="import-btn" onclick="document.getElementById('gpx-input').click()">📂 GPX 파일 열기</button>
+            <div id="import-info" class="export-info"></div>
+            <div id="gpx-layer-list"></div>
+        </div>
     </div>
 
-    <!-- GPX 내보내기 섹션 -->
-    <div id="export-wrap">
-        <div class="export-label">경로 내보내기</div>
-        <div class="export-desc">최근 12시간 동안 걸은 경로를 GPX 파일로 저장해요.</div>
-        <button class="export-btn" onclick="exportGPX()">📥 GPX 다운로드</button>
-        <div id="export-info" class="export-info"></div>
-        <div class="sidebar-divider" style="margin-top:16px;"></div>
-    </div>
-
-    <!-- ✅ GPX 불러오기 섹션 -->
-    <div id="import-wrap">
-        <div class="export-label">GPX 불러오기</div>
-        <div class="export-desc">저장한 GPX 파일을 열면 지도에 파란 선으로 표시해요.</div>
-        <button class="import-btn" onclick="document.getElementById('gpx-input').click()">📂 GPX 파일 열기</button>
-        <div id="import-info" class="export-info"></div>
-        <div id="gpx-layer-list"></div>
-        <div class="sidebar-divider" style="margin-top:16px;"></div>
-    </div>
-
-    <div id="memory-list-container">
-        <p class="empty-message">아직 기록이 없습니다.</p>
-    </div>
 </div>
 
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
+<!-- ✅ canvas 태그 제거됨 — script.js에서 동적으로 생성 -->
 <div id="map-wrap">
-    <canvas id="fog-canvas"></canvas>
-    <canvas id="age-canvas"></canvas>
-    <canvas id="stay-canvas"></canvas>
     <div id="map"></div>
 </div>
 
-<!-- ✅ GPX 파일 입력 (숨김) -->
 <input type="file"
     id="gpx-input"
     accept=".gpx"

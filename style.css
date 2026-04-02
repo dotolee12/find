@@ -118,62 +118,103 @@ html, body {
 
 #sidebar-overlay.show { display: block; }
 
+/* =============================================
+   사이드바 헤더 & 탭
+   ============================================= */
 .sidebar-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-}
-
-.sidebar-header h2 { font-size: 18px; color: #4db8ff; }
-.close-btn { cursor: pointer; font-size: 18px; }
-
-.sidebar-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.08);
-    margin: 0 0 16px;
-}
-
-.fog-toggle-row {
-    display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 4px 0 16px;
-    cursor: pointer;
+    gap: 10px;
+    margin-bottom: 0;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.fog-toggle-label { font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; }
-.fog-toggle-ui { display: flex; align-items: center; gap: 8px; }
+.tab-row { display: flex; gap: 6px; }
 
-.fog-toggle-state {
-    font-size: 12px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
-    transition: 0.25s ease; white-space: nowrap;
+.tab-btn {
+    width: 48px; height: 40px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0.4;
+    background: rgba(255,255,255,0.06);
 }
-.fog-toggle-state.on  { background: rgba(20,20,40,0.9); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.15); }
-.fog-toggle-state.off { background: rgba(240,240,245,0.9); color: rgba(30,30,45,0.85); border: 1px solid rgba(0,0,0,0.1); }
+.tab-btn.active { opacity: 1; transform: translateY(-1px); }
+.tab-btn:hover  { opacity: 0.7; }
+
+/* 사진 탭 — 핑크 */
+.tab-photo { color: #ff8fa3; }
+.tab-photo.active {
+    background: rgba(255,143,163,0.15);
+    border-color: rgba(255,143,163,0.6);
+    box-shadow: 0 2px 10px rgba(255,143,163,0.2);
+}
+
+/* 별 탭 — 연두 */
+.tab-memory { color: #82c9a0; }
+.tab-memory.active {
+    background: rgba(130,201,160,0.15);
+    border-color: rgba(130,201,160,0.6);
+    box-shadow: 0 2px 10px rgba(130,201,160,0.2);
+}
+
+/* GPX 탭 — 하늘 */
+.tab-gpx { color: #7ec8e3; font-size: 10px; font-weight: 800; letter-spacing: -0.5px; }
+.tab-gpx.active {
+    background: rgba(126,200,227,0.15);
+    border-color: rgba(126,200,227,0.6);
+    box-shadow: 0 2px 10px rgba(126,200,227,0.2);
+}
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.close-btn { cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.45); transition: color 0.2s; }
+.close-btn:hover { color: #fff; }
+
+/* 탭 패널 */
+.tab-panel { display: none; padding-top: 14px; animation: fadeInTab 0.18s ease; }
+.tab-panel.active { display: block; }
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 14px 0; }
+
+/* GPX 섹션 안 라벨 */
+.gpx-section { margin-bottom: 4px; }
+.gpx-section-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+.gpx-section-desc  { font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.6; margin-bottom: 10px; }
+
+/* =============================================
+   안개 토글 (미니형)
+   ============================================= */
+.fog-mini-toggle { cursor: pointer; display: flex; align-items: center; }
 
 .toggle-switch {
-    width: 44px; height: 26px; border-radius: 13px;
+    width: 36px; height: 20px; border-radius: 10px;
     background: rgba(255,255,255,0.15);
     position: relative; transition: background 0.25s ease; flex-shrink: 0;
 }
-.toggle-switch.on  { background: #3a3a5c; }
-.toggle-switch.off { background: rgba(220,220,230,0.85); }
+.toggle-switch.on  { background: rgba(77,184,255,0.55); }
+.toggle-switch.off { background: rgba(100,100,120,0.4); }
 
 .toggle-knob {
-    position: absolute; top: 3px; left: 3px;
-    width: 20px; height: 20px; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
     background: #fff; transition: transform 0.25s ease;
 }
-.toggle-switch.on .toggle-knob  { transform: translateX(18px); }
-.toggle-switch.off .toggle-knob { transform: translateX(0); background: rgba(80,80,100,0.7); }
+.toggle-switch.on .toggle-knob  { transform: translateX(16px); }
+.toggle-switch.off .toggle-knob { transform: translateX(0); background: rgba(200,200,220,0.7); }
 
-#export-wrap, #import-wrap { margin-bottom: 4px; }
-
-.export-label { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); margin-bottom: 6px; }
-.export-desc  { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6; margin-bottom: 12px; }
+/* 기존 export-wrap 관련 (GPX 탭 내에서 재사용) */
+.export-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+.export-desc  { font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.6; margin-bottom: 10px; }
 
 .export-btn {
     width: 100%; padding: 11px;
@@ -204,21 +245,61 @@ html, body {
 .gpx-layer-remove { background: none; border: none; color: rgba(255,100,100,0.7); font-size: 14px; cursor: pointer; padding: 0 0 0 8px; flex-shrink: 0; transition: color 0.2s; }
 .gpx-layer-remove:hover { color: #ff5555; }
 
+/* =============================================
+   별 기록 (연두)
+   ============================================= */
 .memory-item {
-    background: rgba(255,255,255,0.05); padding: 15px;
-    border-radius: 10px; margin-bottom: 10px; cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
+    background: rgba(130,201,160,0.07);
+    padding: 13px; border-radius: 10px; margin-bottom: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(130,201,160,0.3);
+    transition: all 0.2s;
 }
-.memory-item:hover { border-color: #4db8ff; background: rgba(255,255,255,0.1); }
-.item-name { display: block; font-weight: bold; margin-bottom: 4px; }
-.item-date { display: block; font-size: 12px; color: rgba(255,255,255,0.6); }
+.memory-item:hover { border-color: rgba(130,201,160,0.7); background: rgba(130,201,160,0.13); }
+
+.item-name { display: block; font-weight: 600; margin-bottom: 3px; color: #c8f0da; font-size: 13px; }
+.item-date { display: block; font-size: 11px; color: rgba(255,255,255,0.45); }
 
 .memory-actions { display: flex; gap: 8px; margin-top: 10px; }
-.memory-action-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
-.memory-action-btn.move   { background: #4db8ff; color: #fff; }
-.memory-action-btn.delete { background: #ff5555; color: #fff; }
+.memory-action-btn { flex: 1; padding: 7px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.memory-action-btn.move   { background: rgba(130,201,160,0.25); color: #82c9a0; border: 1px solid rgba(130,201,160,0.4); }
+.memory-action-btn.delete { background: rgba(255,85,85,0.15);   color: #ff8888; border: 1px solid rgba(255,85,85,0.3); }
 
-.empty-message { opacity: 0.5; text-align: center; margin-top: 50px; }
+/* =============================================
+   사진 기록 (핑크)
+   ============================================= */
+.photo-item {
+    background: rgba(255,143,163,0.07);
+    border: 1px solid rgba(255,143,163,0.3);
+    border-radius: 10px; margin-bottom: 8px;
+    overflow: hidden; cursor: pointer;
+    transition: all 0.2s;
+}
+.photo-item:hover { border-color: rgba(255,143,163,0.7); background: rgba(255,143,163,0.12); }
+
+.photo-item-img {
+    width: 100%; aspect-ratio: 4/3;
+    object-fit: cover; display: block;
+    border-bottom: 1px solid rgba(255,143,163,0.2);
+}
+
+.photo-item-info {
+    padding: 8px 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+
+.photo-item-date { font-size: 11px; color: rgba(255,255,255,0.45); flex: 1; }
+
+.photo-item-actions { display: flex; gap: 6px; }
+
+.photo-action-btn {
+    padding: 5px 10px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 11px; font-weight: 600;
+}
+.photo-action-btn.move   { background: rgba(255,143,163,0.2); color: #ff8fa3; border: 1px solid rgba(255,143,163,0.35); }
+.photo-action-btn.delete { background: rgba(255,85,85,0.12);  color: #ff8888; border: 1px solid rgba(255,85,85,0.25); }
+
+.empty-message { opacity: 0.4; text-align: center; margin-top: 40px; font-size: 13px; }
 
 #controls {
     position: absolute; right: 20px; bottom: 36px;

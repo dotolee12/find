@@ -259,11 +259,20 @@ function syncRecordingUI() {
 }
 
 function syncFogButton() {
-    const toggleBtn = document.getElementById("fog-toggle-btn"), toggleState = document.getElementById("fog-toggle-state");
-    if (!toggleBtn || !toggleState) return;
-    toggleBtn.classList.toggle("on", isFogEnabled); toggleBtn.classList.toggle("off", !isFogEnabled);
-    toggleState.textContent = isFogEnabled ? "켜짐" : "꺼짐";
-    toggleState.classList.toggle("on", isFogEnabled); toggleState.classList.toggle("off", !isFogEnabled);
+    const toggleBtn = document.getElementById("fog-toggle-btn");
+    if (!toggleBtn) return;
+    toggleBtn.classList.toggle("on", isFogEnabled);
+    toggleBtn.classList.toggle("off", !isFogEnabled);
+}
+
+// 탭 전환
+function switchTab(tabName) {
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.remove("active"));
+    const btn = document.querySelector(".tab-" + tabName);
+    const panel = document.getElementById("tab-" + tabName);
+    if (btn)   btn.classList.add("active");
+    if (panel) panel.classList.add("active");
 }
 
 function toggleHelp() { document.getElementById("help-popup").classList.toggle("show"); }
@@ -406,7 +415,7 @@ function handlePhoto(event) {
     reader.onload = function(e) {
         const now = new Date();
         const data = { id: String(now.getTime()), lat: currentPos ? currentPos.lat : 37.5665, lng: currentPos ? currentPos.lng : 126.978, photo: e.target.result, time: now.getTime(), dateString: now.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }), timeString: now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) };
-        photos.push(data); createPhotoMarker(data, true); updateStats(); scheduleSave(); event.target.value = "";
+        photos.push(data); createPhotoMarker(data, true); updatePhotoList(); updateStats(); scheduleSave(); event.target.value = "";
     };
     reader.readAsDataURL(file);
 }
@@ -424,7 +433,38 @@ function createPhotoMarker(data, openPopup = false) {
 function deletePhoto(id) {
     photos = photos.filter(p => p.id !== id);
     const marker = photoMarkers.get(id); if (marker) { map.removeLayer(marker); photoMarkers.delete(id); }
-    updateStats(); scheduleSave();
+    updatePhotoList(); updateStats(); scheduleSave();
+}
+
+function updatePhotoList() {
+    const container = document.getElementById("photo-list-container");
+    if (!container) return;
+    if (photos.length === 0) {
+        container.innerHTML = '<p class="empty-message">사진 기록이 없습니다.</p>'; return;
+    }
+    container.innerHTML = "";
+    [...photos].reverse().forEach(photo => {
+        const item = document.createElement("div"); item.className = "photo-item";
+
+        const img = document.createElement("img");
+        img.className = "photo-item-img"; img.src = photo.photo; img.alt = "photo";
+        img.addEventListener("click", () => { map.flyTo([photo.lat, photo.lng], 17); toggleSidebar(false); });
+
+        const info = document.createElement("div"); info.className = "photo-item-info";
+        const dateEl = document.createElement("span"); dateEl.className = "photo-item-date";
+        dateEl.textContent = photo.dateString + " " + (photo.timeString || "");
+
+        const actions = document.createElement("div"); actions.className = "photo-item-actions";
+        const moveBtn = document.createElement("button"); moveBtn.className = "photo-action-btn move"; moveBtn.textContent = "이동";
+        moveBtn.addEventListener("click", e => { e.stopPropagation(); map.flyTo([photo.lat, photo.lng], 17); toggleSidebar(false); });
+        const delBtn = document.createElement("button"); delBtn.className = "photo-action-btn delete"; delBtn.textContent = "삭제";
+        delBtn.addEventListener("click", e => { e.stopPropagation(); deletePhoto(photo.id); });
+
+        actions.appendChild(moveBtn); actions.appendChild(delBtn);
+        info.appendChild(dateEl); info.appendChild(actions);
+        item.appendChild(img); item.appendChild(info);
+        container.appendChild(item);
+    });
 }
 
 function toggleSidebar(forceOpen) {
@@ -475,7 +515,7 @@ function escapeHtml(value) {
 
 function init() {
     resizeCanvas(); loadState(); renderStoredMarkers(); renderStoredPhotoMarkers();
-    updateStats(); updateMemoryList(); syncRecordingUI(); syncFogButton(); scheduleRender();
+    updateStats(); updateMemoryList(); updatePhotoList(); syncRecordingUI(); syncFogButton(); scheduleRender();
 }
 
 map.whenReady(init);
