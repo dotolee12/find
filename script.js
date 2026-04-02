@@ -38,6 +38,9 @@ let rafId = null;
 const memoryMarkers = new Map();
 const photoMarkers = new Map();
 
+// ✅ GPX 레이어 관리 — { id, name, polyline }
+const gpxLayers = [];
+
 const recBtn = document.getElementById("rec-btn");
 const recStatusBox = document.getElementById("rec-status-box");
 
@@ -50,6 +53,10 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").ad
 
 map.createPane("memoryPane");
 map.getPane("memoryPane").style.zIndex = 500;
+
+// ✅ GPX 선 전용 pane — 안개 위, 마커 아래
+map.createPane("gpxPane");
+map.getPane("gpxPane").style.zIndex = 450;
 
 const fogCanvas = document.getElementById("fog-canvas");
 const ageCanvas = document.getElementById("age-canvas");
@@ -121,7 +128,6 @@ function renderFog() {
         const ageHours = (now - point.startTime) / 3600000;
         fogCtx.globalAlpha = getPathVisibility(ageHours);
 
-        // ✨ 체류 시간에 따라 반지름 증가
         const stayMinutes = (point.endTime - point.startTime) / 60000;
         let radius = baseRadius;
         if (stayMinutes >= 10) {
@@ -141,7 +147,6 @@ function renderFog() {
                 pathCoordinates[index - 1].lng
             ]);
 
-            // ✨ 이전 점의 체류 시간도 고려
             const prevStayMinutes = (pathCoordinates[index - 1].endTime - pathCoordinates[index - 1].startTime) / 60000;
             let prevRadius = baseRadius;
             if (prevStayMinutes >= 10) {
@@ -190,7 +195,6 @@ function renderAgeTint() {
         const color = getAgeColor(ageDays);
         if (!color) return;
 
-        // ✨ 체류 시간에 따라 반지름 증가 (age-canvas도 동일)
         const stayMinutes = (point.endTime - point.startTime) / 60000;
         let radius = baseRadius;
         if (stayMinutes >= 10) {
@@ -279,6 +283,197 @@ function getStayRadiusMeters(stayMin) {
     return FOG_RADIUS_M * (1 + progress);
 }
 
+// =============================================
+// ✅ GPX 내보내기
+// =============================================
+function exportGPX() {
+    const now = Date.now();
+    const twelveHoursAgo = now - 12 * 60 * 60 * 1000;
+
+    const filtered = pathCoordinates.filter(
+        (point) => point.startTime >= twelveHoursAgo
+    );
+
+    const infoEl = document.getElementById("export-info");
+
+    if (filtered.length === 0) {
+        infoEl.textContent = "최근 12시간 기록이 없어요.";
+        infoEl.style.color = "rgba(255,100,100,0.8)";
+        return;
+    }
+
+    const trackPoints = filtered.map((point) => {
+        const time = new Date(point.startTime).toISOString();
+        return `    <trkpt lat="${point.lat.toFixed(7)}" lon="${point.lng.toFixed(7)}">
+      <time>${time}</time>
+    </trkpt>`;
+    }).join("\n");
+
+    const exportDate = new Date().toLocaleDateString("ko-KR", {
+        year: "numeric", month: "long", day: "numeric"
+    });
+
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="나의 대동여지도 - Giloa"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1
+  http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>나의 대동여지도 - ${exportDate}</name>
+    <desc>최근 12시간 이동 경로</desc>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+  <trk>
+    <name>${exportDate} 경로</name>
+    <trkseg>
+${trackPoints}
+    </trkseg>
+  </trk>
+</gpx>`;
+
+    const blob = new Blob([gpx], { type: "application/gpx+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const fileName = `giloa_${new Date().toISOString().slice(0, 10)}.gpx`;
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    infoEl.textContent = `✅ ${filtered.length}개 포인트 저장 완료 (${fileName})`;
+    infoEl.style.color = "rgba(100,255,150,0.9)";
+}
+
+// =============================================
+// ✅ GPX 불러오기 — 파란 선으로 지도에 표시
+// =============================================
+function handleGPXImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const infoEl = document.getElementById("import-info");
+    infoEl.textContent = "읽는 중...";
+    infoEl.style.color = "rgba(255,255,255,0.5)";
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(e.target.result, "application/xml");
+
+            // 파싱 에러 확인
+            const parseError = xml.querySelector("parsererror");
+            if (parseError) {
+                infoEl.textContent = "❌ GPX 파일을 읽을 수 없어요.";
+                infoEl.style.color = "rgba(255,100,100,0.8)";
+                return;
+            }
+
+            // trkpt 또는 wpt 포인트 수집
+            const trkpts = Array.from(xml.querySelectorAll("trkpt, rtept"));
+            if (trkpts.length === 0) {
+                infoEl.textContent = "❌ 경로 데이터가 없는 파일이에요.";
+                infoEl.style.color = "rgba(255,100,100,0.8)";
+                return;
+            }
+
+            const latlngs = trkpts
+                .map((pt) => {
+                    const lat = parseFloat(pt.getAttribute("lat"));
+                    const lng = parseFloat(pt.getAttribute("lon"));
+                    return isFinite(lat) && isFinite(lng) ? [lat, lng] : null;
+                })
+                .filter(Boolean);
+
+            if (latlngs.length < 2) {
+                infoEl.textContent = "❌ 유효한 좌표가 부족해요.";
+                infoEl.style.color = "rgba(255,100,100,0.8)";
+                return;
+            }
+
+            // 파란 선으로 지도에 그리기
+            const polyline = L.polyline(latlngs, {
+                pane: "gpxPane",
+                color: "#4db8ff",
+                weight: 3,
+                opacity: 0.85,
+                smoothFactor: 1.5,
+                lineJoin: "round",
+                lineCap: "round"
+            }).addTo(map);
+
+            // 레이어 등록
+            const id = String(Date.now());
+            const name = file.name.replace(/\.gpx$/i, "");
+            gpxLayers.push({ id, name, polyline });
+
+            // 지도를 해당 경로로 이동
+            map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+
+            // 사이드바에 목록 업데이트
+            updateGpxLayerList();
+
+            infoEl.textContent = `✅ ${latlngs.length}개 포인트 불러옴`;
+            infoEl.style.color = "rgba(100,255,150,0.9)";
+        } catch (err) {
+            infoEl.textContent = "❌ 파일 처리 중 오류가 발생했어요.";
+            infoEl.style.color = "rgba(255,100,100,0.8)";
+            console.error("GPX import error:", err);
+        }
+
+        // 파일 입력 초기화 (같은 파일 다시 열 수 있게)
+        event.target.value = "";
+    };
+
+    reader.readAsText(file);
+}
+
+function updateGpxLayerList() {
+    const listEl = document.getElementById("gpx-layer-list");
+    if (!listEl) return;
+
+    listEl.innerHTML = "";
+
+    gpxLayers.forEach((layer) => {
+        const item = document.createElement("div");
+        item.className = "gpx-layer-item";
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "gpx-layer-name";
+        nameEl.textContent = "🔵 " + layer.name;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "gpx-layer-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.title = "삭제";
+        removeBtn.addEventListener("click", () => removeGpxLayer(layer.id));
+
+        item.appendChild(nameEl);
+        item.appendChild(removeBtn);
+        listEl.appendChild(item);
+    });
+}
+
+function removeGpxLayer(id) {
+    const idx = gpxLayers.findIndex((l) => l.id === id);
+    if (idx === -1) return;
+
+    map.removeLayer(gpxLayers[idx].polyline);
+    gpxLayers.splice(idx, 1);
+    updateGpxLayerList();
+
+    const infoEl = document.getElementById("import-info");
+    if (gpxLayers.length === 0) {
+        infoEl.textContent = "";
+    }
+}
+
+// =============================================
+// HUD / UI
+// =============================================
 function toggleHud() {
     isHudExpanded = !isHudExpanded;
     document.getElementById("hud").classList.toggle("expanded", isHudExpanded);
@@ -336,6 +531,9 @@ function toggleFog() {
     scheduleRender();
 }
 
+// =============================================
+// GPS 추적
+// =============================================
 function startTracking() {
     if (!navigator.geolocation) {
         alert("이 브라우저는 위치 추적을 지원하지 않습니다.");
@@ -516,6 +714,9 @@ function shrinkOldPoints(points, maxPoints) {
     return [...head.filter((_, i) => i % ratio === 0), ...tail].slice(-maxPoints);
 }
 
+// =============================================
+// 메모리 / 사진 마커
+// =============================================
 function addMemory() {
     if (!currentPos) {
         alert("위치 정보를 수신 중입니다.");
@@ -533,13 +734,10 @@ function addMemory() {
         name: escapeHtml(input.trim() || "기억의 지점"),
         time: now.getTime(),
         dateString: now.toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
+            year: "numeric", month: "long", day: "numeric"
         }),
         timeString: now.toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit"
+            hour: "2-digit", minute: "2-digit"
         })
     };
 
@@ -671,13 +869,10 @@ function handlePhoto(event) {
             photo: e.target.result,
             time: now.getTime(),
             dateString: now.toLocaleDateString("ko-KR", {
-                year: "numeric",
-                month: "long",
-                day: "numeric"
+                year: "numeric", month: "long", day: "numeric"
             }),
             timeString: now.toLocaleTimeString("ko-KR", {
-                hour: "2-digit",
-                minute: "2-digit"
+                hour: "2-digit", minute: "2-digit"
             })
         };
 
@@ -742,6 +937,9 @@ function deletePhoto(id) {
     scheduleSave();
 }
 
+// =============================================
+// 사이드바 / 기타
+// =============================================
 function toggleSidebar(forceOpen) {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("sidebar-overlay");
