@@ -20,30 +20,32 @@ html, body {
     width: 100%;
     height: 100%;
     filter: grayscale(0.12) contrast(1.04);
-    z-index: 10;
+    /* z-index 제거 — map-wrap(z-index:1) 안에서 자연스럽게 쌓임 */
 }
 
+/* =============================================
+   ✅ 안개 캔버스는 이제 Leaflet pane 내부에서 JS로 생성됨
+   HTML에 남아 있는 #fog-canvas / #age-canvas / #stay-canvas 태그는
+   혹시 남아 있어도 무해하도록 숨김 처리
+   ============================================= */
 #fog-canvas,
 #age-canvas,
 #stay-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+    display: none;
 }
 
-#fog-canvas  { z-index: 2; }
-#age-canvas  { z-index: 3; }
-#stay-canvas { z-index: 4; }
+/* =============================================
+   ✅ Leaflet pane z-index 정리
+   fogPane(300) / agePane(310) / stayPane(320) 은 JS에서 직접 설정
+   여기서는 marker / popup 만 명시
+   ============================================= */
+.leaflet-pane          { z-index: auto; }
+.leaflet-map-pane      { z-index: 400 !important; }
+.leaflet-tile-pane     { z-index: 200 !important; }
+.leaflet-marker-pane   { z-index: 600 !important; }
+.leaflet-popup-pane    { z-index: 700 !important; }
+.leaflet-tooltip-pane  { z-index: 800 !important; }
 
-.leaflet-pane         { z-index: auto; }
-.leaflet-map-pane     { z-index: 400 !important; }
-.leaflet-tile-pane    { z-index: 200 !important; }
-.leaflet-marker-pane  { z-index: 600 !important; }
-.leaflet-popup-pane   { z-index: 700 !important; }
-.leaflet-tooltip-pane { z-index: 800 !important; }
 #top-bar {
     position: absolute;
     top: 20px;
@@ -253,7 +255,6 @@ html, body {
 
 .export-btn:hover { background: rgba(77, 184, 255, 0.25); }
 
-/* ✅ GPX 불러오기 버튼 */
 .import-btn {
     width: 100%;
     padding: 11px;
@@ -276,7 +277,6 @@ html, body {
     min-height: 18px;
 }
 
-/* ✅ GPX 레이어 목록 */
 #gpx-layer-list {
     margin-top: 10px;
     display: flex;

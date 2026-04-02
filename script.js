@@ -1,3 +1,4 @@
+
 const STORAGE_KEY = "giloa-layer-final";
 const FOG_ENABLED_KEY = "giloa-fog-enabled";
 const FOG_ALPHA = 0.8;
@@ -38,7 +39,7 @@ let rafId = null;
 const memoryMarkers = new Map();
 const photoMarkers = new Map();
 
-// ✅ GPX 레이어 관리 — { id, name, polyline }
+// GPX 레이어 관리 — { id, name, polyline }
 const gpxLayers = [];
 
 const recBtn = document.getElementById("rec-btn");
@@ -51,16 +52,50 @@ const map = L.map("map", {
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
 
-map.createPane("memoryPane");
-map.getPane("memoryPane").style.zIndex = 500;
+// =============================================
+// ✅ Leaflet pane 구조 설정
+// z-index 계층: tile(200) → fog/age/stay(300~320) → gpx(450) → marker(600) → popup(700)
+// 이 구조 덕분에 마커는 항상 안개 위에 환하게 보임
+// =============================================
 
-// ✅ GPX 선 전용 pane — 안개 위, 마커 아래
+// 안개 pane 생성 (타일 위, 마커 아래)
+map.createPane("fogPane");
+map.getPane("fogPane").style.zIndex = 300;
+map.getPane("fogPane").style.pointerEvents = "none";
+
+map.createPane("agePane");
+map.getPane("agePane").style.zIndex = 310;
+map.getPane("agePane").style.pointerEvents = "none";
+
+map.createPane("stayPane");
+map.getPane("stayPane").style.zIndex = 320;
+map.getPane("stayPane").style.pointerEvents = "none";
+
+// 마커 pane (안개 위)
+map.createPane("memoryPane");
+map.getPane("memoryPane").style.zIndex = 600;
+
+// GPX 선 pane (안개 위, 마커 아래)
 map.createPane("gpxPane");
 map.getPane("gpxPane").style.zIndex = 450;
 
-const fogCanvas = document.getElementById("fog-canvas");
-const ageCanvas = document.getElementById("age-canvas");
-const stayCanvas = document.getElementById("stay-canvas");
+// =============================================
+// ✅ 캔버스를 Leaflet pane 안에 직접 생성
+// HTML의 고정 캔버스 대신 Leaflet pane DOM에 append해야
+// 지도 이동/줌 시 좌표계가 맞고, z-index가 올바르게 동작함
+// =============================================
+const fogCanvas = document.createElement("canvas");
+fogCanvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
+map.getPane("fogPane").appendChild(fogCanvas);
+
+const ageCanvas = document.createElement("canvas");
+ageCanvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
+map.getPane("agePane").appendChild(ageCanvas);
+
+const stayCanvas = document.createElement("canvas");
+stayCanvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
+map.getPane("stayPane").appendChild(stayCanvas);
+
 const fogCtx = fogCanvas.getContext("2d");
 const ageCtx = ageCanvas.getContext("2d");
 const stayCtx = stayCanvas.getContext("2d");
@@ -78,7 +113,7 @@ function resizeCanvas() {
 }
 
 window.addEventListener("resize", resizeCanvas);
-map.on("move zoom", scheduleRender);
+map.on("move zoom moveend zoomend", scheduleRender);
 
 function scheduleRender() {
     if (rafId !== null) return;
@@ -284,7 +319,7 @@ function getStayRadiusMeters(stayMin) {
 }
 
 // =============================================
-// ✅ GPX 내보내기
+// GPX 내보내기
 // =============================================
 function exportGPX() {
     const now = Date.now();
@@ -348,7 +383,7 @@ ${trackPoints}
 }
 
 // =============================================
-// ✅ GPX 불러오기 — 파란 선으로 지도에 표시
+// GPX 불러오기 — 파란 선으로 지도에 표시
 // =============================================
 function handleGPXImport(event) {
     const file = event.target.files[0];
@@ -364,7 +399,6 @@ function handleGPXImport(event) {
             const parser = new DOMParser();
             const xml = parser.parseFromString(e.target.result, "application/xml");
 
-            // 파싱 에러 확인
             const parseError = xml.querySelector("parsererror");
             if (parseError) {
                 infoEl.textContent = "❌ GPX 파일을 읽을 수 없어요.";
@@ -372,7 +406,6 @@ function handleGPXImport(event) {
                 return;
             }
 
-            // trkpt 또는 wpt 포인트 수집
             const trkpts = Array.from(xml.querySelectorAll("trkpt, rtept"));
             if (trkpts.length === 0) {
                 infoEl.textContent = "❌ 경로 데이터가 없는 파일이에요.";
@@ -394,7 +427,6 @@ function handleGPXImport(event) {
                 return;
             }
 
-            // 파란 선으로 지도에 그리기
             const polyline = L.polyline(latlngs, {
                 pane: "gpxPane",
                 color: "#4db8ff",
@@ -405,15 +437,12 @@ function handleGPXImport(event) {
                 lineCap: "round"
             }).addTo(map);
 
-            // 레이어 등록
             const id = String(Date.now());
             const name = file.name.replace(/\.gpx$/i, "");
             gpxLayers.push({ id, name, polyline });
 
-            // 지도를 해당 경로로 이동
             map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
 
-            // 사이드바에 목록 업데이트
             updateGpxLayerList();
 
             infoEl.textContent = `✅ ${latlngs.length}개 포인트 불러옴`;
@@ -424,7 +453,6 @@ function handleGPXImport(event) {
             console.error("GPX import error:", err);
         }
 
-        // 파일 입력 초기화 (같은 파일 다시 열 수 있게)
         event.target.value = "";
     };
 
