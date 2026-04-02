@@ -15,6 +15,7 @@ html, body {
 }
 
 #map {
+			z-index: 10;
     position: absolute;
     inset: 0;
     width: 100%;
@@ -22,9 +23,12 @@ html, body {
     filter: grayscale(0.12) contrast(1.04);
 }
 
-#fog-canvas,
-#age-canvas,
+#fog-canvas{
+			z-index: 2;},
+#age-canvas{
+			z-index: 3;},
 #stay-canvas {
+			z-index: 4;
     position: absolute;
     top: 0;
     left: 0;
