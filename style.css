@@ -6,34 +6,33 @@ html, body {
     font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
-#map-wrap {
-    position: absolute; inset: 0; z-index: 1;
+/* 지도 — z-index 1, filter OK (canvas가 바깥에 있으므로 stacking context 영향 없음) */
+#map-wrap { position: absolute; inset: 0; z-index: 1; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; filter: grayscale(0.12) contrast(1.04); }
+
+/* ✅ canvas — body 직속 fixed, map-wrap 완전 바깥
+   z-index 400~402 → 지도(1) 위, 마커(450) 아래 */
+#fog-canvas, #age-canvas, #stay-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
 }
+#fog-canvas  { z-index: 400; }
+#age-canvas  { z-index: 401; }
+#stay-canvas { z-index: 402; }
 
-/* filter 완전 제거 — 모바일에서 filter가 stacking context 강제 생성해서
-   내부 pane z-index 무력화. 대신 타일 pane에만 적용 */
-#map {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-}
+/* ✅ Leaflet 마커/팝업을 canvas(402) 위로 */
+.leaflet-marker-pane  { z-index: 450 !important; }
+.leaflet-popup-pane   { z-index: 451 !important; }
+.leaflet-tooltip-pane { z-index: 452 !important; }
 
-/* filter 완전 제거 — 모바일 stacking context 문제 방지 */
-
-#fog-canvas, #age-canvas, #stay-canvas { display: none !important; }
-
-.leaflet-pane         { z-index: auto; }
-.leaflet-map-pane     { z-index: 400 !important; }
-.leaflet-tile-pane    { z-index: 200 !important; }
-.leaflet-marker-pane  { z-index: 600 !important; }
-.leaflet-popup-pane   { z-index: 700 !important; }
-.leaflet-tooltip-pane { z-index: 800 !important; }
-
+/* 상단 바 */
 #top-bar {
-    position: absolute; top: 20px; left: 20px; right: 20px;
+    position: fixed; top: 20px; left: 20px; right: 20px;
     display: flex; justify-content: space-between; align-items: center;
     z-index: 1000; gap: 12px;
 }
-
 #ham-btn {
     width: 48px; height: 48px; flex-shrink: 0;
     background: rgba(30,30,45,0.75); border: 1px solid rgba(255,255,255,0.1);
@@ -54,6 +53,7 @@ html, body {
     background: rgba(255,60,60,0.18); border-color: rgba(255,80,80,0.55); color: #ff8888;
 }
 
+/* 사이드바 */
 #sidebar {
     position: fixed; top: 0; left: -300px; width: 300px; height: 100%;
     background: rgba(18,18,28,0.97); backdrop-filter: blur(16px);
@@ -62,120 +62,87 @@ html, body {
     box-shadow: 5px 0 20px rgba(0,0,0,0.6); overflow-y: auto;
 }
 #sidebar.open { left: 0; }
-
 #sidebar-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     display: none; z-index: 1999;
 }
 #sidebar-overlay.show { display: block; }
 
+/* 탭 헤더 */
 .sidebar-header {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.07);
 }
-
 .tab-row { display: flex; gap: 6px; }
-
 .tab-btn {
-    width: 48px; height: 40px;
-    border: 2px solid transparent; border-radius: 10px;
+    width: 48px; height: 40px; border: 2px solid transparent; border-radius: 10px;
     cursor: pointer; font-size: 17px;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s ease; opacity: 0.38;
-    background: rgba(255,255,255,0.05);
+    transition: all 0.2s; opacity: 0.38; background: rgba(255,255,255,0.05);
 }
 .tab-btn.active { opacity: 1; transform: translateY(-1px); }
-.tab-btn:hover  { opacity: 0.68; }
-
 .tab-photo { color: #ff8fa3; }
-.tab-photo.active {
-    background: rgba(255,143,163,0.14); border-color: rgba(255,143,163,0.65);
-    box-shadow: 0 2px 10px rgba(255,143,163,0.22);
-}
+.tab-photo.active { background: rgba(255,143,163,0.14); border-color: rgba(255,143,163,0.65); }
 .tab-memory { color: #82c9a0; }
-.tab-memory.active {
-    background: rgba(130,201,160,0.14); border-color: rgba(130,201,160,0.65);
-    box-shadow: 0 2px 10px rgba(130,201,160,0.22);
-}
-.tab-gpx { color: #7ec8e3; font-size: 10px; font-weight: 800; letter-spacing: -0.5px; }
-.tab-gpx.active {
-    background: rgba(126,200,227,0.14); border-color: rgba(126,200,227,0.65);
-    box-shadow: 0 2px 10px rgba(126,200,227,0.22);
-}
-
+.tab-memory.active { background: rgba(130,201,160,0.14); border-color: rgba(130,201,160,0.65); }
+.tab-gpx { color: #7ec8e3; font-size: 10px; font-weight: 800; }
+.tab-gpx.active { background: rgba(126,200,227,0.14); border-color: rgba(126,200,227,0.65); }
 .header-right { display: flex; align-items: center; gap: 10px; }
-.close-btn { cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.4); transition: color 0.2s; }
-.close-btn:hover { color: #fff; }
+.close-btn { cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.4); }
 
+/* 탭 패널 */
 .tab-panel { display: none; padding-top: 14px; animation: fadeInTab 0.18s ease; }
 .tab-panel.active { display: block; }
-
 #tab-photo  { border-top: 3px solid #ff8fa3; margin-top: 1px; }
 #tab-memory { border-top: 3px solid #82c9a0; margin-top: 1px; }
 #tab-gpx    { border-top: 3px solid #7ec8e3; margin-top: 1px; }
-
-@keyframes fadeInTab {
-    from { opacity: 0; transform: translateY(5px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes fadeInTab { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 
 .sidebar-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 14px 0; }
 
+/* 안개 토글 */
 .fog-mini-toggle { cursor: pointer; display: flex; align-items: center; }
-
 .toggle-switch {
     width: 36px; height: 20px; border-radius: 10px;
-    background: rgba(255,255,255,0.15);
-    position: relative; transition: background 0.25s; flex-shrink: 0;
+    background: rgba(255,255,255,0.15); position: relative; transition: background 0.25s; flex-shrink: 0;
 }
 .toggle-switch.on  { background: rgba(77,184,255,0.6); }
 .toggle-switch.off { background: rgba(100,100,120,0.4); }
 .toggle-knob {
-    position: absolute; top: 2px; left: 2px;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #fff; transition: transform 0.25s;
+    position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff; transition: transform 0.25s;
 }
 .toggle-switch.on .toggle-knob  { transform: translateX(16px); }
-.toggle-switch.off .toggle-knob { transform: translateX(0); background: rgba(200,200,220,0.7); }
+.toggle-switch.off .toggle-knob { transform: translateX(0); }
 
+/* GPX 섹션 */
 .gpx-section { margin-bottom: 4px; }
 .gpx-section-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
 .gpx-section-desc  { font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.6; margin-bottom: 10px; }
-
 .export-btn {
     width: 100%; padding: 11px;
     background: rgba(126,200,227,0.13); border: 1px solid rgba(126,200,227,0.45);
-    border-radius: 10px; color: #7ec8e3;
-    font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    border-radius: 10px; color: #7ec8e3; font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.export-btn:hover { background: rgba(126,200,227,0.22); }
-
 .import-btn {
     width: 100%; padding: 11px;
     background: rgba(126,200,227,0.08); border: 1px solid rgba(126,200,227,0.35);
-    border-radius: 10px; color: #aadeef;
-    font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    border-radius: 10px; color: #aadeef; font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.import-btn:hover { background: rgba(126,200,227,0.18); }
-
 .export-info { margin-top: 8px; font-size: 12px; color: rgba(100,255,150,0.9); min-height: 18px; }
-
-#gpx-layer-list { margin-top: 10px; display: flex; flex-direction: column; gap: 0; }
-
+#gpx-layer-list { margin-top: 10px; }
 .gpx-layer-item {
     display: flex; align-items: center; justify-content: space-between;
     background: rgba(126,200,227,0.09); border: 2px solid rgba(126,200,227,0.42);
-    border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; transition: all 0.2s;
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
 }
-.gpx-layer-item:hover { border-color: #7ec8e3; }
 .gpx-layer-name { font-size: 12px; color: #aadeef; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gpx-layer-remove { background: none; border: none; color: rgba(255,120,120,0.7); font-size: 14px; cursor: pointer; padding: 0 0 0 8px; transition: color 0.2s; }
-.gpx-layer-remove:hover { color: #ff5555; }
+.gpx-layer-remove { background: none; border: none; color: rgba(255,120,120,0.7); font-size: 14px; cursor: pointer; padding: 0 0 0 8px; }
 
+/* 별 기록 카드 */
 .memory-item {
-    background: rgba(130,201,160,0.09); padding: 13px;
-    border-radius: 10px; margin-bottom: 8px; cursor: pointer;
-    border: 2px solid rgba(130,201,160,0.52); transition: all 0.2s;
+    background: rgba(130,201,160,0.09); padding: 13px; border-radius: 10px; margin-bottom: 8px;
+    cursor: pointer; border: 2px solid rgba(130,201,160,0.52); transition: all 0.2s;
 }
 .memory-item:hover { border-color: #82c9a0; background: rgba(130,201,160,0.16); }
 .item-name { display: block; font-weight: 600; margin-bottom: 3px; color: #c8f0da; font-size: 13px; }
@@ -183,67 +150,54 @@ html, body {
 .memory-actions { display: flex; gap: 8px; margin-top: 10px; }
 .memory-action-btn { flex: 1; padding: 7px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
 .memory-action-btn.move   { background: rgba(130,201,160,0.28); color: #a8e6c0; border: 1px solid rgba(130,201,160,0.55); }
-.memory-action-btn.delete { background: rgba(255,85,85,0.16);   color: #ffaaaa; border: 1px solid rgba(255,85,85,0.4); }
+.memory-action-btn.delete { background: rgba(255,85,85,0.16); color: #ffaaaa; border: 1px solid rgba(255,85,85,0.4); }
 
+/* 사진 기록 카드 */
 .photo-item {
-    background: rgba(255,143,163,0.09);
-    border: 2px solid rgba(255,143,163,0.52);
-    border-radius: 10px; margin-bottom: 8px;
-    overflow: hidden; cursor: pointer; transition: all 0.2s;
+    background: rgba(255,143,163,0.09); border: 2px solid rgba(255,143,163,0.52);
+    border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s;
 }
-.photo-item:hover { border-color: #ff8fa3; background: rgba(255,143,163,0.16); }
-.photo-item-img {
-    width: 100%; aspect-ratio: 4/3;
-    object-fit: cover; display: block;
-    border-bottom: 2px solid rgba(255,143,163,0.32);
-}
-.photo-item-info {
-    padding: 8px 10px;
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-}
+.photo-item:hover { border-color: #ff8fa3; }
+.photo-item-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; border-bottom: 2px solid rgba(255,143,163,0.32); }
+.photo-item-info { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .photo-item-date { font-size: 11px; color: rgba(255,255,255,0.45); flex: 1; }
 .photo-item-actions { display: flex; gap: 6px; }
 .photo-action-btn { padding: 5px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
 .photo-action-btn.move   { background: rgba(255,143,163,0.26); color: #ffb3c2; border: 1px solid rgba(255,143,163,0.55); }
-.photo-action-btn.delete { background: rgba(255,85,85,0.16);   color: #ffaaaa; border: 1px solid rgba(255,85,85,0.4); }
+.photo-action-btn.delete { background: rgba(255,85,85,0.16); color: #ffaaaa; border: 1px solid rgba(255,85,85,0.4); }
 
 .empty-message { opacity: 0.38; text-align: center; margin-top: 42px; font-size: 13px; }
 
+/* 컨트롤 버튼 */
 #controls {
-    position: absolute; right: 20px; bottom: 36px;
-    z-index: 1000; display: flex; flex-direction: column;
-    gap: 12px; transition: bottom 0.3s ease;
+    position: fixed; right: 20px; bottom: 36px;
+    z-index: 1000; display: flex; flex-direction: column; gap: 12px; transition: bottom 0.3s ease;
 }
 #controls.hud-open { bottom: 136px; }
-
 .btn {
     width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(30,30,45,0.82);
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid rgba(255,255,255,0.1);
-    cursor: pointer; font-size: 20px; color: #fff;
+    background: rgba(30,30,45,0.82); display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.1); cursor: pointer; font-size: 20px; color: #fff;
     backdrop-filter: blur(8px); transition: 0.2s;
 }
 .btn:active { transform: scale(0.93); }
-
 #rec-btn.recording .icon-rec  { display: none; }
 #rec-btn.recording .icon-stop { display: block; }
-#rec-btn .icon-stop           { display: none; }
+#rec-btn .icon-stop { display: none; }
 .icon-stop { width: 14px; height: 14px; background: #ff4444; border-radius: 2px; }
 .icon-rec  { width: 14px; height: 14px; background: #ff4444; border-radius: 50%; }
 .icon-loc  { width: 12px; height: 12px; background: #4db8ff; border-radius: 50%; box-shadow: 0 0 10px #4db8ff; }
 
+/* 도움말 */
 #help-btn {
-    position: absolute; left: 20px; bottom: 36px;
+    position: fixed; left: 20px; bottom: 36px;
     width: 48px; height: 48px; border-radius: 50%;
     background: rgba(30,30,45,0.82); border: 1px solid rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.65); font-size: 20px; font-weight: bold;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 1000; backdrop-filter: blur(8px);
-    transition: bottom 0.3s ease;
+    cursor: pointer; z-index: 1000; backdrop-filter: blur(8px); transition: bottom 0.3s ease;
 }
 #help-btn.hud-open { bottom: 136px; }
-
 #help-popup {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.55); z-index: 3000;
@@ -252,8 +206,7 @@ html, body {
 #help-popup.show { display: flex; }
 .help-content {
     background: rgba(18,18,28,0.98); border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 16px; padding: 22px 20px;
-    width: calc(100% - 40px); max-width: 400px; color: #fff;
+    border-radius: 16px; padding: 22px 20px; width: calc(100% - 40px); max-width: 400px; color: #fff;
 }
 .help-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 16px; font-weight: bold; color: #7ec8e3; }
 .help-close  { cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.55); }
@@ -262,21 +215,19 @@ html, body {
     display: block; padding: 14px;
     background: rgba(255,235,0,0.11); border: 1px solid rgba(255,235,0,0.35);
     border-radius: 12px; color: #ffe800; text-decoration: none;
-    font-size: 14px; font-weight: 600; text-align: center; transition: 0.2s;
+    font-size: 14px; font-weight: 600; text-align: center;
 }
-.help-link:hover { background: rgba(255,235,0,0.2); }
 
+/* HUD */
 #hud {
-    position: absolute; left: 0; right: 0; bottom: 0;
+    position: fixed; left: 0; right: 0; bottom: 0;
     background: rgba(18,18,28,0.88); z-index: 999;
     border-top: 1px solid rgba(255,255,255,0.09);
-    backdrop-filter: blur(10px);
-    transition: height 0.3s ease; overflow: hidden; height: 28px;
+    backdrop-filter: blur(10px); transition: height 0.3s ease; overflow: hidden; height: 28px;
 }
 #hud.expanded { height: 120px; }
 #hud-handle { display: flex; justify-content: center; align-items: center; padding: 8px 0 4px; cursor: pointer; }
-.handle-bar { width: 40px; height: 4px; background: rgba(255,255,255,0.22); border-radius: 2px; transition: background 0.2s; }
-#hud-handle:hover .handle-bar { background: rgba(255,255,255,0.48); }
+.handle-bar { width: 40px; height: 4px; background: rgba(255,255,255,0.22); border-radius: 2px; }
 #hud-basic {
     display: flex; align-items: center; padding: 0 16px; height: 80px;
     opacity: 0; transform: translateY(6px);
@@ -289,74 +240,31 @@ html, body {
 .value { font-size: 16px; color: #fff; font-weight: 600; margin-top: 4px; }
 .value span { margin-left: 2px; font-size: 12px; color: rgba(255,255,255,0.65); }
 
-/* =============================================
-   body fixed 마커 레이어
-   ============================================= */
-#marker-layer { isolation: isolate; }
-
-/* 공통 fixed 마커 */
-.fixed-marker {
-    position: absolute;
-    cursor: pointer;
-    /* pointer-events는 markerLayer가 none이므로 여기서 auto로 복원 */
-    pointer-events: auto;
-}
-
-/* 플레이어 마커 */
+/* 마커 */
 .player-marker {
-    width: 18px; height: 18px;
-    background: #4db8ff;
-    border: 3px solid rgba(255,255,255,0.95);
-    border-radius: 50%;
+    width: 18px; height: 18px; background: #4db8ff;
+    border: 3px solid rgba(255,255,255,0.95); border-radius: 50%;
     box-shadow: 0 0 14px rgba(77,184,255,0.95);
-    pointer-events: none;
 }
-
-/* 별 마커 */
-.memory-marker-el {
-    width: 28px; height: 28px;
-    display: flex; align-items: center; justify-content: center;
+.memory-marker {
+    width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
     color: #ffd84d; font-size: 22px;
     text-shadow: 0 0 10px rgba(255,216,77,0.9), 0 0 20px rgba(255,216,77,0.5);
     filter: drop-shadow(0 0 4px rgba(255,216,77,0.8));
 }
-
-/* 사진 마커 */
-.photo-marker-el {
-    width: 44px; height: 44px;
+.photo-marker {
+    width: 44px; height: 44px; border-radius: 8px; overflow: hidden;
+    border: 2px solid #ff8fa3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,143,163,0.35);
     cursor: pointer;
 }
+.photo-marker img { width: 100%; height: 100%; object-fit: cover; }
 
-/* 팝업 (마커 안에 absolute로 들어감) */
-.fixed-popup {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(18,18,28,0.97);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 12px;
-    padding: 12px 14px;
-    min-width: 180px;
-    max-width: 240px;
-    color: #fff;
-    font-size: 13px;
-    line-height: 1.6;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.55);
-    z-index: 30;
-    white-space: normal;
-    pointer-events: auto;
-}
-.fixed-popup b     { font-size: 14px; display: block; margin-bottom: 2px; }
-.fixed-popup small { color: rgba(255,255,255,0.48); font-size: 11px; display: block; margin-bottom: 8px; }
-
+/* 팝업 */
 .popup-delete-btn {
     margin-top: 8px; padding: 6px 12px; border: none; border-radius: 8px;
-    background: #ff5555; color: #fff; cursor: pointer;
-    font-size: 12px; font-weight: 600; width: 100%;
+    background: #ff5555; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600; width: 100%;
 }
-.popup-delete-btn:hover { background: #ff3333; }
-
 .leaflet-popup-content-wrapper {
     background: rgba(18,18,28,0.97) !important; color: #fff !important;
     border: 1px solid rgba(255,255,255,0.14) !important;
@@ -367,11 +275,10 @@ html, body {
 .leaflet-popup-content small { color: rgba(255,255,255,0.48); font-size: 11px; }
 .leaflet-popup-tip           { background: rgba(18,18,28,0.97) !important; }
 .leaflet-popup-close-button  { color: rgba(255,255,255,0.48) !important; font-size: 18px !important; }
-
 .photo-popup img { width: 100%; max-width: 300px; border-radius: 8px; margin-bottom: 8px; display: block; }
 
 @media (max-width: 640px) {
-    #top-bar  { top: 14px; left: 14px; right: 14px; }
+    #top-bar { top: 14px; left: 14px; right: 14px; }
     #controls { right: 14px; bottom: 96px; }
     #help-btn { left: 14px; bottom: 96px; }
     #sidebar  { width: 285px; padding: 18px; }

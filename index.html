@@ -13,10 +13,7 @@
 </head>
 <body>
 
-<!-- ===================== 사이드바 ===================== -->
 <div id="sidebar">
-
-  <!-- 헤더: 탭 3개 + 안개토글 + 닫기 -->
   <div class="sidebar-header">
     <div class="tab-row">
       <button class="tab-btn tab-photo active" onclick="switchTab('photo')" title="사진 기록">🖼</button>
@@ -31,21 +28,18 @@
     </div>
   </div>
 
-  <!-- 사진 탭 (핑크) -->
   <div id="tab-photo" class="tab-panel active">
     <div id="photo-list-container">
       <p class="empty-message">사진 기록이 없습니다.</p>
     </div>
   </div>
 
-  <!-- 별 탭 (연두) -->
   <div id="tab-memory" class="tab-panel">
     <div id="memory-list-container">
       <p class="empty-message">아직 기록이 없습니다.</p>
     </div>
   </div>
 
-  <!-- GPX 탭 (하늘) -->
   <div id="tab-gpx" class="tab-panel">
     <div class="gpx-section">
       <div class="gpx-section-label">경로 내보내기</div>
@@ -62,22 +56,27 @@
       <div id="gpx-layer-list"></div>
     </div>
   </div>
-
-</div><!-- /sidebar -->
+</div>
 
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
-<!-- ===================== 지도 ===================== -->
-<!-- canvas는 script.js에서 Leaflet pane 안에 동적 생성됨 -->
+<!-- 지도 -->
 <div id="map-wrap">
   <div id="map"></div>
 </div>
 
-<!-- 숨김 파일 입력 -->
+<!-- ✅ canvas를 body 직속으로, map-wrap 바깥에 선언 -->
+<!-- CSS에서 position:fixed로 전체 화면 덮음 -->
+<!-- Leaflet stacking context 완전 무관 -->
+<canvas id="fog-canvas"></canvas>
+<canvas id="age-canvas"></canvas>
+<canvas id="stay-canvas"></canvas>
+
+<!-- 숨김 입력 -->
 <input type="file" id="gpx-input"    accept=".gpx"    style="display:none" onchange="handleGPXImport(event)">
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
 
-<!-- ===================== 상단 바 ===================== -->
+<!-- 상단 바 -->
 <div id="top-bar">
   <div id="ham-btn" onclick="toggleSidebar()">
     <div class="hline"></div><div class="hline"></div><div class="hline"></div>
@@ -85,25 +84,18 @@
   <div id="rec-status-box">대기 중</div>
 </div>
 
-<!-- ===================== 우측 컨트롤 버튼 ===================== -->
+<!-- 우측 버튼 -->
 <div id="controls">
-  <!-- 녹화 시작/정지 -->
-  <div id="rec-btn" class="btn" onclick="toggleRecording()">
-    <div class="icon-rec"></div>
-    <div class="icon-stop"></div>
+  <div id="rec-btn"   class="btn" onclick="toggleRecording()">
+    <div class="icon-rec"></div><div class="icon-stop"></div>
   </div>
-  <!-- 사진 찍기 -->
   <div id="photo-btn" class="btn" onclick="document.getElementById('camera-input').click()" title="사진 올리기">🖼</div>
-  <!-- 별 기억 저장 -->
-  <div id="memo-btn" class="btn" onclick="addMemory()">★</div>
-  <!-- 내 위치로 이동 -->
-  <div id="loc-btn" class="btn" onclick="centerMap()"><div class="icon-loc"></div></div>
+  <div id="memo-btn"  class="btn" onclick="addMemory()">★</div>
+  <div id="loc-btn"   class="btn" onclick="centerMap()"><div class="icon-loc"></div></div>
 </div>
 
-<!-- ===================== 좌하단 도움말 버튼 ===================== -->
 <div id="help-btn" onclick="toggleHelp()">?</div>
 
-<!-- 도움말 팝업 -->
 <div id="help-popup">
   <div class="help-content">
     <div class="help-header">
@@ -117,7 +109,6 @@
   </div>
 </div>
 
-<!-- ===================== 하단 HUD ===================== -->
 <div id="hud">
   <div id="hud-handle" onclick="toggleHud()"><div class="handle-bar"></div></div>
   <div id="hud-basic">
