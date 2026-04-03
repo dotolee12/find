@@ -19,7 +19,7 @@ html, body {
 
 /* filter 완전 제거 — 모바일 stacking context 문제 방지 */
 
-#fog-canvas, #age-canvas, #stay-canvas { display: none !important; }
+/*#fog-canvas, #age-canvas, #stay-canvas { display: none !important; }*/
 
 .leaflet-pane         { z-index: auto; }
 .leaflet-map-pane     { z-index: 400 !important; }
