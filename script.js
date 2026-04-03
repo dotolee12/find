@@ -22,11 +22,11 @@ const MIN_VISIBILITY_HOURS  = 24;
 const MIN_PATH_VISIBILITY   = 0.4;
 
 const AGE_COLORS = [
-    { day: 365, color: "rgba(180,80,220,0.28)"  }, // 1년+ — 보라
-    { day: 180, color: "rgba(255,120,60,0.28)"  }, // 6개월 — 주황
-    { day: 90,  color: "rgba(255,200,50,0.26)"  }, // 3개월 — 황금
-    { day: 30,  color: "rgba(80,200,120,0.24)"  }, // 1개월 — 초록
-    { day: 3,   color: "rgba(100,220,255,0.22)" }  // 3일   — 청록
+    { day: 365, color: "rgba(180,80,220,0.28)"  },
+    { day: 180, color: "rgba(255,120,60,0.28)"  },
+    { day: 90,  color: "rgba(255,200,50,0.26)"  },
+    { day: 30,  color: "rgba(80,200,120,0.24)"  },
+    { day: 3,   color: "rgba(100,220,255,0.22)" }
 ];
 
 // ── 2. 상태 변수 ─────────────────────────────────────────────
@@ -78,8 +78,6 @@ function resizeCanvas() {
         c.width  = w;
         c.height = h;
     });
-    const rect = map.getContainer().getBoundingClientRect();
-    mapRect = { left: rect.left, top: rect.top };
     scheduleRender();
 }
 
@@ -117,7 +115,7 @@ function calcMpp() {
 
 function latlngToFixed(latlng) {
     const pt = map.latLngToContainerPoint(latlng);
-    return { x: pt.x + mapRect.left, y: pt.y + mapRect.top };
+    return { x: pt.x, y: pt.y };
 }
 
 // ── 6. 안개 렌더링 ────────────────────────────────────────────
@@ -135,7 +133,6 @@ function renderFog(points, mpp) {
     fogCtx.save();
     fogCtx.lineCap = fogCtx.lineJoin = "round";
 
-    // Pass 1: 외곽 글로우 (두껍고 반투명)
     fogCtx.globalCompositeOperation = "destination-out";
     points.forEach((pt, arrIdx) => {
         if (arrIdx === 0) return;
@@ -154,7 +151,6 @@ function renderFog(points, mpp) {
         fogCtx.stroke();
     });
 
-    // Pass 2: 코어 선 (선명)
     points.forEach((pt, arrIdx) => {
         if (arrIdx === 0) return;
         const h   = (now - pt.startTime) / 3600000;
@@ -172,7 +168,6 @@ function renderFog(points, mpp) {
         fogCtx.stroke();
     });
 
-    // Pass 3: 점 노드 + 머문 시간 확장
     points.forEach(pt => {
         const h   = (now - pt.startTime) / 3600000;
         const stayMin = (pt.endTime - pt.startTime) / 60000;
@@ -334,7 +329,6 @@ function toggleRecording() {
     syncRecordingUI();
     if (isRecording) {
         if (!watchId) startTracking();
-        // 녹화 시작 → 안개 켜기 (단, 사용자가 수동으로 껐으면 유지)
         if (!isFogEnabled) {
             isFogEnabled = true;
             localStorage.setItem(FOG_ENABLED_KEY, "true");
@@ -343,7 +337,6 @@ function toggleRecording() {
     } else {
         compactPathData();
         scheduleSave();
-        // 녹화 중지 → 안개 걷기
         isFogEnabled = false;
         localStorage.setItem(FOG_ENABLED_KEY, "false");
         syncFogButton();
@@ -670,7 +663,7 @@ function exportGPX() {
     const lines  = [
         `<?xml version="1.0" encoding="UTF-8"?>`,
         `<gpx version="1.1" creator="Giloa" xmlns="http://www.topografix.com/GPX/1/1">`,
-        `  <trk><name>Giloa ${stamp}</name><trkseg>`
+        `  <trk><n>Giloa ${stamp}</n><trkseg>`
     ];
     recent.forEach(p => {
         lines.push(`    <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">` +
@@ -709,10 +702,10 @@ function handleGPXImport(event) {
                 if (isFinite(lat) && isFinite(lng)) latlngs.push([lat, lng]);
             });
             const polyline = L.polyline(latlngs, {
-                pane:   "gpxPane",
-                color:  "#7ec8e3",
-                weight: 3,
-                opacity: 0.75,
+                pane:      "gpxPane",
+                color:     "#7ec8e3",
+                weight:    3,
+                opacity:   0.75,
                 dashArray: "6 4"
             }).addTo(map);
 
@@ -862,8 +855,6 @@ function loadState() {
             );
         }
         if (isFinite(s.totalDistance)) totalDistance = s.totalDistance;
-
-        // 안개 상태는 녹화 버튼이 제어 — 앱 시작 시 항상 꺼짐
     } catch (e) { console.error("불러오기 실패", e); }
 }
 
@@ -898,7 +889,6 @@ function init() {
     resizeCanvas();
     loadState();
 
-    // 저장된 마커 복원
     memories.forEach(m => createMemoryMarker(m, false));
     photos.forEach(p   => createPhotoMarker(p,  false));
 
@@ -909,7 +899,6 @@ function init() {
     syncFogButton();
     scheduleRender();
 
-    // 위치 추적 시작 (항상 — 기록 여부와 무관하게 현재 위치 표시)
     startTracking();
 }
 
