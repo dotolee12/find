@@ -22,11 +22,11 @@ const MIN_VISIBILITY_HOURS  = 24;
 const MIN_PATH_VISIBILITY   = 0.4;
 
 const AGE_COLORS = [
-    { day: 365, color: "rgba(180,80,220,0.28)"  },
-    { day: 180, color: "rgba(255,120,60,0.28)"  },
-    { day: 90,  color: "rgba(255,200,50,0.26)"  },
-    { day: 30,  color: "rgba(80,200,120,0.24)"  },
-    { day: 3,   color: "rgba(100,220,255,0.22)" }
+    { day: 365, color: "rgba(180,80,220,0.28)"  }, // 1년+ — 보라
+    { day: 180, color: "rgba(255,120,60,0.28)"  }, // 6개월 — 주황
+    { day: 90,  color: "rgba(255,200,50,0.26)"  }, // 3개월 — 황금
+    { day: 30,  color: "rgba(80,200,120,0.24)"  }, // 1개월 — 초록
+    { day: 3,   color: "rgba(100,220,255,0.22)" }  // 3일   — 청록
 ];
 
 // ── 2. 상태 변수 ─────────────────────────────────────────────
@@ -93,17 +93,18 @@ function scheduleRender() {
 }
 
 function render() {
+    const rect   = map.getContainer().getBoundingClientRect();
     const bounds = map.getBounds().pad(0.15);
     const visiblePoints = pathCoordinates
         .map((pt, i) => ({ ...pt, index: i }))
         .filter(pt => bounds.contains([pt.lat, pt.lng]));
 
     const mpp = calcMpp();
-    renderFog(visiblePoints, mpp);
-    renderAgeTint(visiblePoints, mpp);
-    renderStayTint(visiblePoints, mpp);
+    renderFog(visiblePoints, mpp, rect);
+    renderAgeTint(visiblePoints, mpp, rect);
+    renderStayTint(visiblePoints, mpp, rect);
 
-    if (currentPos && isFogEnabled && isRecording) punchFogAtLocation(currentPos, 10);
+    if (currentPos && isFogEnabled && isRecording) punchFogAtLocation(currentPos, 10, rect);
 }
 
 function calcMpp() {
@@ -113,13 +114,13 @@ function calcMpp() {
         map.unproject(map.project(center, zoom).add([10, 0]), zoom)) / 10 || 1;
 }
 
-function latlngToFixed(latlng) {
+function latlngToFixed(latlng, rect) {
     const pt = map.latLngToContainerPoint(latlng);
-    return { x: pt.x, y: pt.y };
+    return { x: pt.x + rect.left, y: pt.y + rect.top };
 }
 
 // ── 6. 안개 렌더링 ────────────────────────────────────────────
-function renderFog(points, mpp) {
+function renderFog(points, mpp, rect) {
     fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
     if (!isFogEnabled) return;
 
@@ -133,6 +134,7 @@ function renderFog(points, mpp) {
     fogCtx.save();
     fogCtx.lineCap = fogCtx.lineJoin = "round";
 
+    // Pass 1: 외곽 글로우 (두껍고 반투명)
     fogCtx.globalCompositeOperation = "destination-out";
     points.forEach((pt, arrIdx) => {
         if (arrIdx === 0) return;
@@ -140,8 +142,8 @@ function renderFog(points, mpp) {
         const vis = getPathVisibility(h);
         const prev = pathCoordinates[pt.index - 1];
         if (!prev) return;
-        const ppos = latlngToFixed([prev.lat, prev.lng]);
-        const pos  = latlngToFixed([pt.lat, pt.lng]);
+        const ppos = latlngToFixed([prev.lat, prev.lng], rect);
+        const pos  = latlngToFixed([pt.lat, pt.lng], rect);
 
         fogCtx.globalAlpha = vis * 0.38;
         fogCtx.lineWidth   = baseR * 3.2;
@@ -151,14 +153,15 @@ function renderFog(points, mpp) {
         fogCtx.stroke();
     });
 
+    // Pass 2: 코어 선 (선명)
     points.forEach((pt, arrIdx) => {
         if (arrIdx === 0) return;
         const h   = (now - pt.startTime) / 3600000;
         const vis = getPathVisibility(h);
         const prev = pathCoordinates[pt.index - 1];
         if (!prev) return;
-        const ppos = latlngToFixed([prev.lat, prev.lng]);
-        const pos  = latlngToFixed([pt.lat, pt.lng]);
+        const ppos = latlngToFixed([prev.lat, prev.lng], rect);
+        const pos  = latlngToFixed([pt.lat, pt.lng], rect);
 
         fogCtx.globalAlpha = vis;
         fogCtx.lineWidth   = baseR * 1.5;
@@ -168,13 +171,14 @@ function renderFog(points, mpp) {
         fogCtx.stroke();
     });
 
+    // Pass 3: 점 노드 + 머문 시간 확장
     points.forEach(pt => {
         const h   = (now - pt.startTime) / 3600000;
         const stayMin = (pt.endTime - pt.startTime) / 60000;
         const r   = stayMin >= 10
             ? baseR * (1 + Math.min(stayMin / 180, 1))
             : baseR;
-        const pos = latlngToFixed([pt.lat, pt.lng]);
+        const pos = latlngToFixed([pt.lat, pt.lng], rect);
 
         fogCtx.globalAlpha = getPathVisibility(h);
         fogCtx.beginPath();
@@ -185,9 +189,10 @@ function renderFog(points, mpp) {
     fogCtx.restore();
 }
 
-function punchFogAtLocation(latlng, accuracy) {
+function punchFogAtLocation(latlng, accuracy, rect) {
     if (!isFogEnabled) return;
-    const pos  = latlngToFixed(latlng);
+    const rect2 = rect || map.getContainer().getBoundingClientRect();
+    const pos   = latlngToFixed(latlng, rect2);
     const mpp  = calcMpp();
     const r    = (FOG_RADIUS_M / mpp) * (accuracy < 15 ? 1.0 : 1.1);
     fogCtx.save();
@@ -206,7 +211,7 @@ function getPathVisibility(h) {
 }
 
 // ── 7. 나이 색상 & 머문 시간 레이어 ───────────────────────────
-function renderAgeTint(points, mpp) {
+function renderAgeTint(points, mpp, rect) {
     ageCtx.clearRect(0, 0, ageCanvas.width, ageCanvas.height);
     if (points.length === 0) return;
     const now   = Date.now();
@@ -218,7 +223,7 @@ function renderAgeTint(points, mpp) {
         const d     = (now - pt.startTime) / 86400000;
         const entry = AGE_COLORS.find(c => d >= c.day);
         if (!entry) return;
-        const pos = latlngToFixed([pt.lat, pt.lng]);
+        const pos = latlngToFixed([pt.lat, pt.lng], rect);
         const r   = baseR * ((pt.endTime - pt.startTime) / 60000 >= 10 ? 1.5 : 1);
         ageCtx.fillStyle = entry.color;
         ageCtx.beginPath();
@@ -228,13 +233,13 @@ function renderAgeTint(points, mpp) {
     ageCtx.restore();
 }
 
-function renderStayTint(points, mpp) {
+function renderStayTint(points, mpp, rect) {
     stayCtx.clearRect(0, 0, stayCanvas.width, stayCanvas.height);
     const baseR = FOG_RADIUS_M / mpp;
     points.forEach(pt => {
         const stayMin = (pt.endTime - pt.startTime) / 60000;
         if (stayMin < 10) return;
-        const pos  = latlngToFixed([pt.lat, pt.lng]);
+        const pos  = latlngToFixed([pt.lat, pt.lng], rect);
         const r    = baseR * (stayMin >= 180 ? 2.5 : 1 + (stayMin - 10) / 170);
         const grad = stayCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, r);
         grad.addColorStop(0, "rgba(255,220,100,0.2)");
@@ -329,6 +334,7 @@ function toggleRecording() {
     syncRecordingUI();
     if (isRecording) {
         if (!watchId) startTracking();
+        // 녹화 시작 → 안개 켜기 (단, 사용자가 수동으로 껐으면 유지)
         if (!isFogEnabled) {
             isFogEnabled = true;
             localStorage.setItem(FOG_ENABLED_KEY, "true");
@@ -337,6 +343,7 @@ function toggleRecording() {
     } else {
         compactPathData();
         scheduleSave();
+        // 녹화 중지 → 안개 걷기
         isFogEnabled = false;
         localStorage.setItem(FOG_ENABLED_KEY, "false");
         syncFogButton();
@@ -663,7 +670,7 @@ function exportGPX() {
     const lines  = [
         `<?xml version="1.0" encoding="UTF-8"?>`,
         `<gpx version="1.1" creator="Giloa" xmlns="http://www.topografix.com/GPX/1/1">`,
-        `  <trk><n>Giloa ${stamp}</n><trkseg>`
+        `  <trk><name>Giloa ${stamp}</name><trkseg>`
     ];
     recent.forEach(p => {
         lines.push(`    <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">` +
@@ -702,10 +709,10 @@ function handleGPXImport(event) {
                 if (isFinite(lat) && isFinite(lng)) latlngs.push([lat, lng]);
             });
             const polyline = L.polyline(latlngs, {
-                pane:      "gpxPane",
-                color:     "#7ec8e3",
-                weight:    3,
-                opacity:   0.75,
+                pane:   "gpxPane",
+                color:  "#7ec8e3",
+                weight: 3,
+                opacity: 0.75,
                 dashArray: "6 4"
             }).addTo(map);
 
@@ -855,6 +862,8 @@ function loadState() {
             );
         }
         if (isFinite(s.totalDistance)) totalDistance = s.totalDistance;
+
+        // 안개 상태는 녹화 버튼이 제어 — 앱 시작 시 항상 꺼짐
     } catch (e) { console.error("불러오기 실패", e); }
 }
 
@@ -889,6 +898,7 @@ function init() {
     resizeCanvas();
     loadState();
 
+    // 저장된 마커 복원
     memories.forEach(m => createMemoryMarker(m, false));
     photos.forEach(p   => createPhotoMarker(p,  false));
 
@@ -899,6 +909,7 @@ function init() {
     syncFogButton();
     scheduleRender();
 
+    // 위치 추적 시작 (항상 — 기록 여부와 무관하게 현재 위치 표시)
     startTracking();
 }
 
