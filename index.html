@@ -18,7 +18,16 @@
     <div class="tab-row">
       <button class="tab-btn tab-photo active" onclick="switchTab('photo')" title="사진 기록">🖼</button>
       <button class="tab-btn tab-memory"       onclick="switchTab('memory')" title="별 기록">★</button>
-      <button class="tab-btn tab-gpx"          onclick="switchTab('gpx')"   title="GPX">GPX</button>
+      <button class="tab-btn tab-gpx"          onclick="switchTab('gpx')"   title="경로 내보내기/불러오기">
+        <svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 36 C10 36 8 28 16 28 C24 28 24 20 24 20 C24 20 24 12 32 12 C40 12 38 20 38 20"/>
+          <circle cx="10" cy="36" r="3.5" fill="currentColor" stroke="none"/>
+          <circle cx="38" cy="20" r="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <line x1="38" y1="17" x2="38" y2="12" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="10" cy="20" r="2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2"/>
+          <circle cx="24" cy="28" r="2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2"/>
+        </svg>
+      </button>
     </div>
     <div class="header-right">
       <div class="fog-mini-toggle" onclick="toggleFog()" title="어둠 효과">
@@ -43,15 +52,15 @@
   <div id="tab-gpx" class="tab-panel">
     <div class="gpx-section">
       <div class="gpx-section-label">경로 내보내기</div>
-      <div class="gpx-section-desc">최근 12시간 동안 걸은 경로를 GPX 파일로 저장해요.</div>
-      <button class="export-btn" onclick="exportGPX()">📥 GPX 다운로드</button>
+      <div class="gpx-section-desc">최근 12시간 동안 걸은 경로를 파일로 저장해요.</div>
+      <button class="export-btn" onclick="exportGPX()">📥 경로 다운로드</button>
       <div id="export-info" class="export-info"></div>
     </div>
     <div class="sidebar-divider"></div>
     <div class="gpx-section">
-      <div class="gpx-section-label">GPX 불러오기</div>
-      <div class="gpx-section-desc">저장한 GPX 파일을 열면 지도에 하늘색 선으로 표시해요.</div>
-      <button class="import-btn" onclick="document.getElementById('gpx-input').click()">📂 GPX 파일 열기</button>
+      <div class="gpx-section-label">경로 불러오기</div>
+      <div class="gpx-section-desc">저장한 경로 파일을 열면 지도에 하늘색 선으로 표시해요.</div>
+      <button class="import-btn" onclick="document.getElementById('gpx-input').click()">📂 경로 파일 열기</button>
       <div id="import-info" class="export-info"></div>
       <div id="gpx-layer-list"></div>
     </div>
@@ -60,23 +69,17 @@
 
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
-<!-- 지도 -->
 <div id="map-wrap">
   <div id="map"></div>
 </div>
 
-<!-- ✅ canvas를 body 직속으로, map-wrap 바깥에 선언 -->
-<!-- CSS에서 position:fixed로 전체 화면 덮음 -->
-<!-- Leaflet stacking context 완전 무관 -->
 <canvas id="fog-canvas"></canvas>
 <canvas id="age-canvas"></canvas>
 <canvas id="stay-canvas"></canvas>
 
-<!-- 숨김 입력 -->
 <input type="file" id="gpx-input"    accept=".gpx"    style="display:none" onchange="handleGPXImport(event)">
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
 
-<!-- 상단 바 -->
 <div id="top-bar">
   <div id="ham-btn" onclick="toggleSidebar()">
     <div class="hline"></div><div class="hline"></div><div class="hline"></div>
@@ -84,7 +87,6 @@
   <div id="rec-status-box">대기 중</div>
 </div>
 
-<!-- 우측 버튼 -->
 <div id="controls">
   <div id="rec-btn"   class="btn" onclick="toggleRecording()">
     <div class="icon-rec"></div><div class="icon-stop"></div>
