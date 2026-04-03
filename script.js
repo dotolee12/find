@@ -51,10 +51,27 @@ const recStatusBox = document.getElementById("rec-status-box");
 // =============================================
 // 지도 초기화
 // =============================================
-const map = L.map("map", { zoomControl: false, attributionControl: false })
+
+
+
+// 테스트//
+
+
+let map; 
+let fogCanvas, fogCtx; 
+let isFogEnabled = true;
+
+// 2. 지도 초기화 (기존 const map 부분을 이렇게 바꿉니다)
+map = L.map("map", { zoomControl: false, attributionControl: false })
     .setView([37.5665, 126.978], 16);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
+// 3. 타일 레이어 추가 (기존 코드 유지)
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png").addTo(map);
+
+
+//테스트//
+
+
 
 // =============================================
 // Leaflet pane 계층 설정
@@ -81,7 +98,23 @@ map.getPane("memoryPane").style.zIndex = "600";
 
 ["fogPane","agePane","stayPane"].forEach(name => {
     map.getPane(name).style.pointerEvents = "none";
+
+
+//테스트//
+
+
+
+fogCanvas = document.createElement('canvas');
+    fogCanvas.id = "fog-canvas"; 
+    map.getPane("fogPane").appendChild(fogCanvas);
+    fogCtx = fogCanvas.getContext('2d');
+    
+    resizeCanvas(); // 캔버스 크기를 지도에 맞춤
+    
 });
+
+
+//테스트//
 
 
 /* 이건 임시 테스트 */
