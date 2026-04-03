@@ -37,27 +37,49 @@ map.getPane("gpxPane").style.zIndex = 610;
 
 const mapWrap = document.getElementById("map-wrap");
 
-function makeOverlayCanvas(zIndex) {
+// =============================================
+// 안개 pane을 Leaflet pane 시스템 안에 생성
+// tile(200) < fog(250~270) < marker(600) < popup(700)
+// 이 순서로 쌓이므로 마커는 항상 안개 위에 보임
+// =============================================
+map.createPane("fogPane");
+map.createPane("agePane");
+map.createPane("stayPane");
+
+const fogPaneEl  = map.getPane("fogPane");
+const agePaneEl  = map.getPane("agePane");
+const stayPaneEl = map.getPane("stayPane");
+
+fogPaneEl.style.zIndex  = "250";
+agePaneEl.style.zIndex  = "260";
+stayPaneEl.style.zIndex = "270";
+
+[fogPaneEl, agePaneEl, stayPaneEl].forEach(el => {
+    el.style.pointerEvents = "none";
+});
+
+function makePaneCanvas(paneEl) {
     const c = document.createElement("canvas");
-    c.style.position = "absolute";
-    c.style.top = "0"; c.style.left = "0";
-    c.style.width = "100%"; c.style.height = "100%";
-    c.style.pointerEvents = "none";
-    c.style.zIndex = String(zIndex);
-    mapWrap.appendChild(c);
+    c.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;";
+    paneEl.appendChild(c);
     return c;
 }
 
-const fogCanvas  = makeOverlayCanvas(620);
-const ageCanvas  = makeOverlayCanvas(630);
-const stayCanvas = makeOverlayCanvas(640);
+const fogCanvas  = makePaneCanvas(fogPaneEl);
+const ageCanvas  = makePaneCanvas(agePaneEl);
+const stayCanvas = makePaneCanvas(stayPaneEl);
 const fogCtx  = fogCanvas.getContext("2d");
 const ageCtx  = ageCanvas.getContext("2d");
 const stayCtx = stayCanvas.getContext("2d");
 
 function resizeCanvas() {
     const w = window.innerWidth, h = window.innerHeight;
-    [fogCanvas, ageCanvas, stayCanvas].forEach(c => { c.width = w; c.height = h; });
+    [fogCanvas, ageCanvas, stayCanvas].forEach(c => {
+        c.width  = w;
+        c.height = h;
+        c.style.width  = w + "px";
+        c.style.height = h + "px";
+    });
     scheduleRender();
 }
 window.addEventListener("resize", resizeCanvas);
