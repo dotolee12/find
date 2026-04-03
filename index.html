@@ -2,123 +2,140 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>안개 테스트 v2 - Leaflet pane 방식</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>나의 대동여지도 - Project Giloa</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
-#map-wrap { position: absolute; inset: 0; z-index: 1; isolation: isolate; }
-#map { position: absolute; inset: 0; width: 100%; height: 100%; filter: grayscale(0.12) contrast(1.04); }
-#info {
-  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-  background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
-  border-radius: 8px; z-index: 9999; font-family: monospace; font-size: 12px;
-  text-align: center; pointer-events: none;
-}
-</style>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div id="map-wrap"><div id="map"></div></div>
-<div id="info">로딩 중...</div>
+
+<!-- ===================== 사이드바 ===================== -->
+<div id="sidebar">
+
+  <!-- 헤더: 탭 3개 + 안개토글 + 닫기 -->
+  <div class="sidebar-header">
+    <div class="tab-row">
+      <button class="tab-btn tab-photo active" onclick="switchTab('photo')" title="사진 기록">🖼</button>
+      <button class="tab-btn tab-memory"       onclick="switchTab('memory')" title="별 기록">★</button>
+      <button class="tab-btn tab-gpx"          onclick="switchTab('gpx')"   title="GPX">GPX</button>
+    </div>
+    <div class="header-right">
+      <div class="fog-mini-toggle" onclick="toggleFog()" title="어둠 효과">
+        <div id="fog-toggle-btn" class="toggle-switch on"><div class="toggle-knob"></div></div>
+      </div>
+      <span onclick="toggleSidebar(false)" class="close-btn">✕</span>
+    </div>
+  </div>
+
+  <!-- 사진 탭 (핑크) -->
+  <div id="tab-photo" class="tab-panel active">
+    <div id="photo-list-container">
+      <p class="empty-message">사진 기록이 없습니다.</p>
+    </div>
+  </div>
+
+  <!-- 별 탭 (연두) -->
+  <div id="tab-memory" class="tab-panel">
+    <div id="memory-list-container">
+      <p class="empty-message">아직 기록이 없습니다.</p>
+    </div>
+  </div>
+
+  <!-- GPX 탭 (하늘) -->
+  <div id="tab-gpx" class="tab-panel">
+    <div class="gpx-section">
+      <div class="gpx-section-label">경로 내보내기</div>
+      <div class="gpx-section-desc">최근 12시간 동안 걸은 경로를 GPX 파일로 저장해요.</div>
+      <button class="export-btn" onclick="exportGPX()">📥 GPX 다운로드</button>
+      <div id="export-info" class="export-info"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="gpx-section">
+      <div class="gpx-section-label">GPX 불러오기</div>
+      <div class="gpx-section-desc">저장한 GPX 파일을 열면 지도에 하늘색 선으로 표시해요.</div>
+      <button class="import-btn" onclick="document.getElementById('gpx-input').click()">📂 GPX 파일 열기</button>
+      <div id="import-info" class="export-info"></div>
+      <div id="gpx-layer-list"></div>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
+<!-- ===================== 지도 ===================== -->
+<!-- canvas는 script.js에서 Leaflet pane 안에 동적 생성됨 -->
+<div id="map-wrap">
+  <div id="map"></div>
+</div>
+
+<!-- 숨김 파일 입력 -->
+<input type="file" id="gpx-input"    accept=".gpx"    style="display:none" onchange="handleGPXImport(event)">
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+
+<!-- ===================== 상단 바 ===================== -->
+<div id="top-bar">
+  <div id="ham-btn" onclick="toggleSidebar()">
+    <div class="hline"></div><div class="hline"></div><div class="hline"></div>
+  </div>
+  <div id="rec-status-box">대기 중</div>
+</div>
+
+<!-- ===================== 우측 컨트롤 버튼 ===================== -->
+<div id="controls">
+  <!-- 녹화 시작/정지 -->
+  <div id="rec-btn" class="btn" onclick="toggleRecording()">
+    <div class="icon-rec"></div>
+    <div class="icon-stop"></div>
+  </div>
+  <!-- 사진 찍기 -->
+  <div id="photo-btn" class="btn" onclick="document.getElementById('camera-input').click()" title="사진 올리기">🖼</div>
+  <!-- 별 기억 저장 -->
+  <div id="memo-btn" class="btn" onclick="addMemory()">★</div>
+  <!-- 내 위치로 이동 -->
+  <div id="loc-btn" class="btn" onclick="centerMap()"><div class="icon-loc"></div></div>
+</div>
+
+<!-- ===================== 좌하단 도움말 버튼 ===================== -->
+<div id="help-btn" onclick="toggleHelp()">?</div>
+
+<!-- 도움말 팝업 -->
+<div id="help-popup">
+  <div class="help-content">
+    <div class="help-header">
+      <span>문의하기</span>
+      <span onclick="toggleHelp()" class="help-close">✕</span>
+    </div>
+    <p>사용 중 불편한 점이나 건의사항을<br>카카오톡 오픈채팅으로 알려주세요!</p>
+    <a href="https://open.kakao.com/o/gwg21Cni" target="_blank" class="help-link">
+      💬 카카오톡 오픈채팅 문의
+    </a>
+  </div>
+</div>
+
+<!-- ===================== 하단 HUD ===================== -->
+<div id="hud">
+  <div id="hud-handle" onclick="toggleHud()"><div class="handle-bar"></div></div>
+  <div id="hud-basic">
+    <div class="stat"><div class="label">전체 이동 거리</div><div id="dist-val"          class="value">0.00<span>km</span></div></div>
+    <div class="stat"><div class="label">오늘 이동 거리</div><div id="today-dist-val"    class="value">0.00<span>km</span></div></div>
+    <div class="stat"><div class="label">기억 저장 수</div>  <div id="memory-count-val" class="value">0<span>개</span></div></div>
+    <div class="stat"><div class="label">사진 저장 수</div>  <div id="photo-count-val"  class="value">0<span>개</span></div></div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./script.js"></script>
 <script>
-const map = L.map("map", { zoomControl: false, attributionControl: false })
-  .setView([37.5665, 126.978], 15);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
-
-// fog pane: tile(200) 위, marker(600) 아래
-map.createPane("fogPane");
-const fogPaneEl = map.getPane("fogPane");
-fogPaneEl.style.zIndex = "250";
-fogPaneEl.style.pointerEvents = "none";
-
-const fogCanvas = document.createElement("canvas");
-fogCanvas.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;";
-fogPaneEl.appendChild(fogCanvas);
-const fogCtx = fogCanvas.getContext("2d");
-
-// memoryPane: 안개 위
-map.createPane("memoryPane");
-map.getPane("memoryPane").style.zIndex = "600";
-
-// 테스트 마커
-const testMarker = L.marker([37.5665, 126.978], {
-    pane: "memoryPane",
-    icon: L.divIcon({
-        className: "",
-        html: '<div style="width:30px;height:30px;background:#ffd84d;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:16px;">★</div>',
-        iconSize: [30, 30]
-    })
-}).addTo(map);
-
-// 가짜 경로
-const fakePath = [
-  {lat:37.5655, lng:126.977}, {lat:37.5660, lng:126.978},
-  {lat:37.5665, lng:126.979}, {lat:37.5670, lng:126.980},
-  {lat:37.5675, lng:126.981},
-];
-
-function resizeCanvas() {
-    fogCanvas.width  = window.innerWidth;
-    fogCanvas.height = window.innerHeight;
-    fogCanvas.style.width  = window.innerWidth + "px";
-    fogCanvas.style.height = window.innerHeight + "px";
-    renderFog();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
 }
-
-function calcMpp() {
-    const center = map.getCenter();
-    const pt = map.latLngToContainerPoint(center);
-    const ll2 = map.containerPointToLatLng(L.point(pt.x + 10, pt.y));
-    return center.distanceTo(ll2) || 1;
-}
-
-function renderFog() {
-    const w = fogCanvas.width, h = fogCanvas.height;
-    fogCtx.clearRect(0, 0, w, h);
-
-    // 전체 어둠
-    fogCtx.fillStyle = "rgba(8, 10, 18, 0.82)";
-    fogCtx.fillRect(0, 0, w, h);
-
-    if (fakePath.length === 0) return;
-
-    const mpp = calcMpp();
-    const baseRadius = (18 / mpp) * 10;
-
-    fogCtx.save();
-    fogCtx.globalCompositeOperation = "destination-out";
-    fogCtx.globalAlpha = 1;
-
-    fakePath.forEach((pt, i) => {
-        const pos = map.latLngToContainerPoint([pt.lat, pt.lng]);
-        fogCtx.beginPath();
-        fogCtx.arc(pos.x, pos.y, baseRadius, 0, Math.PI * 2);
-        fogCtx.fill();
-
-        if (i > 0) {
-            const prev = map.latLngToContainerPoint([fakePath[i-1].lat, fakePath[i-1].lng]);
-            fogCtx.beginPath();
-            fogCtx.lineWidth = baseRadius * 1.7;
-            fogCtx.lineCap = "round";
-            fogCtx.moveTo(prev.x, prev.y);
-            fogCtx.lineTo(pos.x, pos.y);
-            fogCtx.stroke();
-        }
-    });
-
-    fogCtx.restore();
-
-    document.getElementById("info").innerHTML =
-        `canvas: ${w}×${h} | fogPane zIndex: ${fogPaneEl.style.zIndex}<br>` +
-        `baseRadius: ${baseRadius.toFixed(1)}px | 경로: ${fakePath.length}개<br>` +
-        `<b style="color:#4f4">안개가 보이고 ★마커가 안개 위에 보이면 성공!</b>`;
-}
-
-window.addEventListener("resize", resizeCanvas);
-map.on("move zoom", renderFog);
-map.whenReady(() => { resizeCanvas(); });
 </script>
 </body>
 </html>
