@@ -83,6 +83,33 @@ map.getPane("memoryPane").style.zIndex = "600";
     map.getPane(name).style.pointerEvents = "none";
 });
 
+
+/* 이건 임시 테스트 */
+
+
+// 1. 안개 캔버스 생성 및 삽입 (70~84라인 설정 직후에 실행)
+fogCanvas = document.createElement('canvas');
+fogCanvas.id = "fog-canvas"; // CSS와 연결
+map.getPane("fogPane").appendChild(fogCanvas);
+fogCtx = fogCanvas.getContext('2d');
+
+// 2. 캔버스 초기 크기 설정
+function resizeCanvas() {
+    const size = map.getSize();
+    if (fogCanvas) {
+        fogCanvas.width = size.x;
+        fogCanvas.height = size.y;
+    }
+    renderFog(); // 크기 바뀔 때마다 다시 그리기
+}
+
+// 3. 윈도우 리사이즈 이벤트 연결
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); // 즉시 실행
+
+/* 이건 임시 테스트 */
+
+
 // =============================================
 // 안개 canvas — 각 pane 안에 생성
 // =============================================
@@ -742,3 +769,11 @@ function init() {
 }
 
 map.whenReady(init);
+
+
+
+/* 이것도 테스트용 */
+
+
+map.on('move moveend zoomend', renderFog);
+window.addEventListener('resize', resizeCanvas); // resizeCanvas 함수에서 fogCanvas 크기를 조절해야 함
