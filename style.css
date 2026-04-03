@@ -19,7 +19,7 @@ html, body {
 
 /* filter 완전 제거 — 모바일 stacking context 문제 방지 */
 
-/*#fog-canvas, #age-canvas, #stay-canvas { display: none !important; }*/
+#fog-canvas, #age-canvas, #stay-canvas { display: none !important; }
 
 .leaflet-pane         { z-index: auto; }
 .leaflet-map-pane     { z-index: 400 !important; }
@@ -289,25 +289,66 @@ html, body {
 .value { font-size: 16px; color: #fff; font-weight: 600; margin-top: 4px; }
 .value span { margin-left: 2px; font-size: 12px; color: rgba(255,255,255,0.65); }
 
-.player-marker {
-    width: 18px; height: 18px; background: #4db8ff;
-    border: 3px solid rgba(255,255,255,0.95); border-radius: 50%;
-    box-shadow: 0 0 14px rgba(77,184,255,0.95);
+/* =============================================
+   body fixed 마커 레이어
+   ============================================= */
+#marker-layer { isolation: isolate; }
+
+/* 공통 fixed 마커 */
+.fixed-marker {
+    position: absolute;
+    cursor: pointer;
+    /* pointer-events는 markerLayer가 none이므로 여기서 auto로 복원 */
+    pointer-events: auto;
 }
-.memory-marker {
+
+/* 플레이어 마커 */
+.player-marker {
+    width: 18px; height: 18px;
+    background: #4db8ff;
+    border: 3px solid rgba(255,255,255,0.95);
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(77,184,255,0.95);
+    pointer-events: none;
+}
+
+/* 별 마커 */
+.memory-marker-el {
     width: 28px; height: 28px;
-    display: flex; justify-content: center; align-items: center;
+    display: flex; align-items: center; justify-content: center;
     color: #ffd84d; font-size: 22px;
     text-shadow: 0 0 10px rgba(255,216,77,0.9), 0 0 20px rgba(255,216,77,0.5);
     filter: drop-shadow(0 0 4px rgba(255,216,77,0.8));
 }
-.photo-marker {
-    width: 44px; height: 44px; border-radius: 8px; overflow: hidden;
-    border: 2px solid #ff8fa3;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,143,163,0.35);
+
+/* 사진 마커 */
+.photo-marker-el {
+    width: 44px; height: 44px;
     cursor: pointer;
 }
-.photo-marker img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 팝업 (마커 안에 absolute로 들어감) */
+.fixed-popup {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(18,18,28,0.97);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    padding: 12px 14px;
+    min-width: 180px;
+    max-width: 240px;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.6;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.55);
+    z-index: 30;
+    white-space: normal;
+    pointer-events: auto;
+}
+.fixed-popup b     { font-size: 14px; display: block; margin-bottom: 2px; }
+.fixed-popup small { color: rgba(255,255,255,0.48); font-size: 11px; display: block; margin-bottom: 8px; }
 
 .popup-delete-btn {
     margin-top: 8px; padding: 6px 12px; border: none; border-radius: 8px;

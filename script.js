@@ -13,11 +13,9 @@ const SAVE_DELAY_MS        = 800;
 const MERGE_DISTANCE_M     = 6;
 const MERGE_TIME_GAP_MS    = 2 * 60 * 1000;
 const MAX_PATH_POINTS      = 5000;
-
 const FULL_VISIBILITY_HOURS = 0;
 const MIN_VISIBILITY_HOURS  = 24;
 const MIN_PATH_VISIBILITY   = 0.4;
-
 const THREE_DAYS_IN_DAYS = 3;
 const ONE_MONTH_DAYS     = 30;
 const THREE_MONTHS_DAYS  = 90;
@@ -28,18 +26,18 @@ const SEDIMENT_LAYER_COLOR = "rgba(126,112,96,0.24)";
 // =============================================
 // 상태 변수
 // =============================================
-let isRecording    = false;
-let isFogEnabled   = true;
-let isHudExpanded  = false;
-let currentPos     = null;
+let isRecording   = false;
+let isFogEnabled  = true;
+let isHudExpanded = false;
+let currentPos    = null;
 let pathCoordinates = [];
-let memories       = [];
-let photos         = [];
-let totalDistance  = 0;
-let playerMarker   = null;
-let watchId        = null;
-let saveTimer      = null;
-let rafId          = null;
+let memories      = [];
+let photos        = [];
+let totalDistance = 0;
+let playerMarker  = null;
+let watchId       = null;
+let saveTimer     = null;
+let rafId         = null;
 
 const memoryMarkers = new Map();
 const photoMarkers  = new Map();
@@ -51,129 +49,73 @@ const recStatusBox = document.getElementById("rec-status-box");
 // =============================================
 // 지도 초기화
 // =============================================
-
-
-
-// 테스트//
-
-
-let map; 
-let fogCanvas, fogCtx; 
-let isFogEnabled = true;
-
-// 2. 지도 초기화 (기존 const map 부분을 이렇게 바꿉니다)
-map = L.map("map", { zoomControl: false, attributionControl: false })
+const map = L.map("map", { zoomControl: false, attributionControl: false })
     .setView([37.5665, 126.978], 16);
 
-// 3. 타일 레이어 추가 (기존 코드 유지)
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png").addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
 
-
-//테스트//
-
-
-
-// =============================================
-// Leaflet pane 계층 설정
-//
-//  tile       (200)
-//  fogPane    (250)  ← 안개 canvas
-//  agePane    (260)  ← 나이 색상 canvas
-//  stayPane   (270)  ← 체류 색상 canvas
-//  gpxPane    (450)  ← GPX 선
-//  memoryPane (600)  ← ★ 마커, 사진 마커  ← 안개 위에 항상 보임
-//  popup      (700)
-// =============================================
-map.createPane("fogPane");
-map.createPane("agePane");
-map.createPane("stayPane");
+// GPX 선 전용 pane (지도 위, 마커 아래)
 map.createPane("gpxPane");
-map.createPane("memoryPane");
-
-map.getPane("fogPane").style.zIndex    = "250";
-map.getPane("agePane").style.zIndex    = "260";
-map.getPane("stayPane").style.zIndex   = "270";
-map.getPane("gpxPane").style.zIndex    = "450";
-map.getPane("memoryPane").style.zIndex = "600";
-
-["fogPane","agePane","stayPane"].forEach(name => {
-    map.getPane(name).style.pointerEvents = "none";
-
-
-//테스트//
-
-
-
-fogCanvas = document.createElement('canvas');
-    fogCanvas.id = "fog-canvas"; 
-    map.getPane("fogPane").appendChild(fogCanvas);
-    fogCtx = fogCanvas.getContext('2d');
-    
-    resizeCanvas(); // 캔버스 크기를 지도에 맞춤
-    
-});
-
-
-//테스트//
-
-
-/* 이건 임시 테스트 */
-
-
-// 1. 안개 캔버스 생성 및 삽입 (70~84라인 설정 직후에 실행)
-fogCanvas = document.createElement('canvas');
-fogCanvas.id = "fog-canvas"; // CSS와 연결
-map.getPane("fogPane").appendChild(fogCanvas);
-fogCtx = fogCanvas.getContext('2d');
-
-// 2. 캔버스 초기 크기 설정
-function resizeCanvas() {
-    const size = map.getSize();
-    if (fogCanvas) {
-        fogCanvas.width = size.x;
-        fogCanvas.height = size.y;
-    }
-    renderFog(); // 크기 바뀔 때마다 다시 그리기
-}
-
-// 3. 윈도우 리사이즈 이벤트 연결
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas(); // 즉시 실행
-
-/* 이건 임시 테스트 */
-
+map.getPane("gpxPane").style.zIndex = "450";
 
 // =============================================
-// 안개 canvas — 각 pane 안에 생성
+// 안개·마커 레이어를 body에 fixed로 생성
+//
+// z-index 구조:
+//   #map         (z-index: 1, Leaflet 지도)
+//   #fog-layer   (z-index: 10, 안개 canvas)
+//   #age-layer   (z-index: 11, 나이 색상)
+//   #stay-layer  (z-index: 12, 체류 색상)
+//   #marker-layer(z-index: 20, ★마커·사진마커 — 안개 위)
+//   UI 버튼들    (z-index: 1000)
+//   사이드바     (z-index: 2000)
+//
+// body fixed이므로 Leaflet의 filter/stacking context에
+// 전혀 영향 받지 않음 → 모바일에서도 완벽 동작
 // =============================================
-function makePaneCanvas(paneName) {
+function makeFixedCanvas(id, zIndex) {
     const c = document.createElement("canvas");
-    c.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;";
-    map.getPane(paneName).appendChild(c);
+    c.id = id;
+    c.style.cssText =
+        "position:fixed;top:0;left:0;width:100vw;height:100vh;" +
+        "pointer-events:none;z-index:" + zIndex + ";";
+    document.body.appendChild(c);
     return c;
 }
 
-const fogCanvas  = makePaneCanvas("fogPane");
-const ageCanvas  = makePaneCanvas("agePane");
-const stayCanvas = makePaneCanvas("stayPane");
+const fogCanvas  = makeFixedCanvas("fog-canvas",  10);
+const ageCanvas  = makeFixedCanvas("age-canvas",  11);
+const stayCanvas = makeFixedCanvas("stay-canvas", 12);
 const fogCtx     = fogCanvas.getContext("2d");
 const ageCtx     = ageCanvas.getContext("2d");
 const stayCtx    = stayCanvas.getContext("2d");
+
+// 마커 전용 div 레이어 (canvas 위, 버튼 아래)
+const markerLayer = document.createElement("div");
+markerLayer.id = "marker-layer";
+markerLayer.style.cssText =
+    "position:fixed;top:0;left:0;width:100vw;height:100vh;" +
+    "pointer-events:none;z-index:20;overflow:hidden;";
+document.body.appendChild(markerLayer);
 
 // =============================================
 // canvas 크기 동기화
 // =============================================
 function resizeCanvas() {
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
     [fogCanvas, ageCanvas, stayCanvas].forEach(c => {
-        c.width  = w; c.height = h;
-        c.style.width = w + "px"; c.style.height = h + "px";
+        c.width  = w;
+        c.height = h;
     });
     scheduleRender();
 }
 
 window.addEventListener("resize", resizeCanvas);
-map.on("move zoom moveend zoomend", scheduleRender);
+map.on("move zoom moveend zoomend", () => {
+    scheduleRender();
+    updateAllMarkerPositions();
+});
 
 function scheduleRender() {
     if (rafId !== null) return;
@@ -201,41 +143,44 @@ function metersToPixels(m, mpp) { return (m / mpp) * 10; }
 // 안개 렌더링
 // =============================================
 function renderFog() {
-    const w = fogCanvas.width, h = fogCanvas.height;
+    const w = fogCanvas.width;
+    const h = fogCanvas.height;
     fogCtx.clearRect(0, 0, w, h);
     if (!isFogEnabled) return;
 
     fogCtx.fillStyle = `rgba(8,10,18,${FOG_ALPHA})`;
     fogCtx.fillRect(0, 0, w, h);
+
     if (pathCoordinates.length === 0) return;
 
-    const now = Date.now(), mpp = calcMpp();
+    const now  = Date.now();
+    const mpp  = calcMpp();
     const base = metersToPixels(FOG_RADIUS_M, mpp);
 
     fogCtx.save();
     fogCtx.globalCompositeOperation = "destination-out";
 
     pathCoordinates.forEach((pt, i) => {
-        const ageH = (now - pt.startTime) / 3600000;
+        const ageH    = (now - pt.startTime) / 3600000;
         fogCtx.globalAlpha = getPathVisibility(ageH);
 
         const stayMin = (pt.endTime - pt.startTime) / 60000;
-        const r = stayMin >= 10 ? base * (1 + Math.min(stayMin / 180, 1)) : base;
-        const pos = map.latLngToContainerPoint([pt.lat, pt.lng]);
+        const r       = stayMin >= 10 ? base * (1 + Math.min(stayMin / 180, 1)) : base;
+        const pos     = map.latLngToContainerPoint([pt.lat, pt.lng]);
 
         fogCtx.beginPath();
         fogCtx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
         fogCtx.fill();
 
         if (i > 0) {
-            const prev   = pathCoordinates[i - 1];
-            const prevS  = (prev.endTime - prev.startTime) / 60000;
-            const pr     = prevS >= 10 ? base * (1 + Math.min(prevS / 180, 1)) : base;
-            const ppos   = map.latLngToContainerPoint([prev.lat, prev.lng]);
+            const prev  = pathCoordinates[i - 1];
+            const prevS = (prev.endTime - prev.startTime) / 60000;
+            const pr    = prevS >= 10 ? base * (1 + Math.min(prevS / 180, 1)) : base;
+            const ppos  = map.latLngToContainerPoint([prev.lat, prev.lng]);
             fogCtx.beginPath();
-            fogCtx.lineWidth  = ((r + pr) / 2) * 1.7;
-            fogCtx.lineCap    = "round";
-            fogCtx.lineJoin   = "round";
+            fogCtx.lineWidth = ((r + pr) / 2) * 1.7;
+            fogCtx.lineCap   = "round";
+            fogCtx.lineJoin  = "round";
             fogCtx.moveTo(ppos.x, ppos.y);
             fogCtx.lineTo(pos.x,  pos.y);
             fogCtx.stroke();
@@ -255,11 +200,13 @@ function getPathVisibility(ageHours) {
 // 나이 색상 렌더링
 // =============================================
 function renderAgeTint() {
-    const w = ageCanvas.width, h = ageCanvas.height;
+    const w = ageCanvas.width;
+    const h = ageCanvas.height;
     ageCtx.clearRect(0, 0, w, h);
     if (pathCoordinates.length === 0) return;
 
-    const now = Date.now(), mpp = calcMpp();
+    const now  = Date.now();
+    const mpp  = calcMpp();
     const base = metersToPixels(FOG_RADIUS_M, mpp);
 
     ageCtx.save();
@@ -267,15 +214,14 @@ function renderAgeTint() {
 
     pathCoordinates.forEach((pt, i) => {
         const ageDays = (now - pt.startTime) / 86400000;
-        const color = getAgeColor(ageDays);
+        const color   = getAgeColor(ageDays);
         if (!color) return;
 
         const stayMin = (pt.endTime - pt.startTime) / 60000;
-        const r   = stayMin >= 10 ? base * (1 + Math.min(stayMin / 180, 1)) : base;
-        const pos = map.latLngToContainerPoint([pt.lat, pt.lng]);
+        const r       = stayMin >= 10 ? base * (1 + Math.min(stayMin / 180, 1)) : base;
+        const pos     = map.latLngToContainerPoint([pt.lat, pt.lng]);
 
-        ageCtx.fillStyle   = color;
-        ageCtx.strokeStyle = color;
+        ageCtx.fillStyle = ageCtx.strokeStyle = color;
         ageCtx.beginPath();
         ageCtx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
         ageCtx.fill();
@@ -288,8 +234,7 @@ function renderAgeTint() {
             const ppos  = map.latLngToContainerPoint([prev.lat, prev.lng]);
             ageCtx.beginPath();
             ageCtx.lineWidth = ((r + pr) / 2) * 1.15;
-            ageCtx.lineCap   = "round";
-            ageCtx.lineJoin  = "round";
+            ageCtx.lineCap = ageCtx.lineJoin = "round";
             ageCtx.moveTo(ppos.x, ppos.y);
             ageCtx.lineTo(pos.x,  pos.y);
             ageCtx.stroke();
@@ -312,7 +257,8 @@ function getAgeColor(d) {
 // 체류 색상 렌더링
 // =============================================
 function renderStayTint() {
-    const w = stayCanvas.width, h = stayCanvas.height;
+    const w = stayCanvas.width;
+    const h = stayCanvas.height;
     stayCtx.clearRect(0, 0, w, h);
     if (pathCoordinates.length === 0) return;
 
@@ -320,7 +266,6 @@ function renderStayTint() {
     pathCoordinates.forEach(pt => {
         const stayMin = (pt.endTime - pt.startTime) / 60000;
         if (stayMin < 10) return;
-
         const pos = map.latLngToContainerPoint([pt.lat, pt.lng]);
         const r   = metersToPixels(
             stayMin >= 180 ? FOG_RADIUS_M * 2 : FOG_RADIUS_M * (1 + (stayMin - 10) / 170),
@@ -338,6 +283,63 @@ function renderStayTint() {
 }
 
 // =============================================
+// 마커 레이어 (body fixed div — 안개 위)
+// Leaflet을 쓰지 않고 직접 DOM 엘리먼트로 관리
+// 지도 이동/줌 시 latLngToContainerPoint로 위치 갱신
+// =============================================
+function createMarkerEl(lat, lng, html, className, anchor) {
+    const el = document.createElement("div");
+    el.className = "fixed-marker " + className;
+    el.innerHTML = html;
+    // anchor: 마커 중심이 좌표에 오도록 transform으로 조정
+    el.dataset.lat    = lat;
+    el.dataset.lng    = lng;
+    el.dataset.anchor = JSON.stringify(anchor || [0, 0]); // [x%, y%]
+    el.style.position = "absolute";
+    el.style.pointerEvents = "auto";
+    markerLayer.appendChild(el);
+    updateMarkerElPos(el);
+    return el;
+}
+
+function updateMarkerElPos(el) {
+    const lat    = parseFloat(el.dataset.lat);
+    const lng    = parseFloat(el.dataset.lng);
+    const anchor = JSON.parse(el.dataset.anchor);
+    const pt     = map.latLngToContainerPoint([lat, lng]);
+    el.style.left      = pt.x + "px";
+    el.style.top       = pt.y + "px";
+    el.style.transform = `translate(${anchor[0]}%, ${anchor[1]}%)`;
+}
+
+function updateAllMarkerPositions() {
+    markerLayer.querySelectorAll(".fixed-marker").forEach(updateMarkerElPos);
+    // 플레이어 마커도 갱신
+    if (playerMarkerEl && currentPos) {
+        playerMarkerEl.dataset.lat = currentPos.lat;
+        playerMarkerEl.dataset.lng = currentPos.lng;
+        updateMarkerElPos(playerMarkerEl);
+    }
+}
+
+// 플레이어 마커
+let playerMarkerEl = null;
+
+function ensurePlayerMarker(latlng) {
+    if (!playerMarkerEl) {
+        playerMarkerEl = createMarkerEl(
+            latlng.lat, latlng.lng,
+            "", "player-marker",
+            [-50, -50]
+        );
+    } else {
+        playerMarkerEl.dataset.lat = latlng.lat;
+        playerMarkerEl.dataset.lng = latlng.lng;
+        updateMarkerElPos(playerMarkerEl);
+    }
+}
+
+// =============================================
 // GPX 내보내기
 // =============================================
 function exportGPX() {
@@ -347,8 +349,7 @@ function exportGPX() {
 
     if (filtered.length === 0) {
         infoEl.textContent = "최근 12시간 기록이 없어요.";
-        infoEl.style.color = "rgba(255,100,100,0.8)";
-        return;
+        infoEl.style.color = "rgba(255,100,100,0.8)"; return;
     }
 
     const trkpts = filtered.map(p =>
@@ -356,17 +357,17 @@ function exportGPX() {
         `      <time>${new Date(p.startTime).toISOString()}</time>\n    </trkpt>`
     ).join("\n");
 
-    const date = new Date().toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" });
-    const gpx  = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    const date = new Date().toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"});
+    const gpx  =
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
         `<gpx version="1.1" creator="Giloa" xmlns="http://www.topografix.com/GPX/1/1">\n` +
-        `  <trk><name>${date}</name><trkseg>\n${trkpts}\n  </trkseg></trk>\n</gpx>`;
+        `  <trk><n>${date}</n><trkseg>\n${trkpts}\n  </trkseg></trk>\n</gpx>`;
 
     const a = Object.assign(document.createElement("a"), {
-        href:     URL.createObjectURL(new Blob([gpx], { type:"application/gpx+xml" })),
+        href: URL.createObjectURL(new Blob([gpx], {type:"application/gpx+xml"})),
         download: `giloa_${new Date().toISOString().slice(0,10)}.gpx`
     });
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-
     infoEl.textContent = `✅ ${filtered.length}개 포인트 저장 완료`;
     infoEl.style.color = "rgba(100,255,150,0.9)";
 }
@@ -375,37 +376,33 @@ function exportGPX() {
 // GPX 불러오기
 // =============================================
 function handleGPXImport(event) {
-    const file  = event.target.files[0]; if (!file) return;
+    const file   = event.target.files[0]; if (!file) return;
     const infoEl = document.getElementById("import-info");
     infoEl.textContent = "읽는 중..."; infoEl.style.color = "rgba(255,255,255,0.5)";
 
     const reader = new FileReader();
     reader.onload = e => {
         try {
-            const xml   = new DOMParser().parseFromString(e.target.result, "application/xml");
-            if (xml.querySelector("parsererror")) throw new Error("parse error");
-
-            const pts = Array.from(xml.querySelectorAll("trkpt,rtept"))
-                .map(p => {
-                    const lat = parseFloat(p.getAttribute("lat"));
-                    const lng = parseFloat(p.getAttribute("lon"));
-                    return isFinite(lat) && isFinite(lng) ? [lat, lng] : null;
-                }).filter(Boolean);
-
-            if (pts.length < 2) throw new Error("too few points");
+            const xml = new DOMParser().parseFromString(e.target.result, "application/xml");
+            if (xml.querySelector("parsererror")) throw new Error();
+            const pts = Array.from(xml.querySelectorAll("trkpt,rtept")).map(p => {
+                const lat = parseFloat(p.getAttribute("lat"));
+                const lng = parseFloat(p.getAttribute("lon"));
+                return isFinite(lat) && isFinite(lng) ? [lat, lng] : null;
+            }).filter(Boolean);
+            if (pts.length < 2) throw new Error();
 
             const poly = L.polyline(pts, {
-                pane: "gpxPane", color: "#7ec8e3", weight: 3,
-                opacity: 0.85, smoothFactor: 1.5, lineCap: "round"
+                pane:"gpxPane", color:"#7ec8e3", weight:3, opacity:0.85, lineCap:"round"
             }).addTo(map);
 
             const id = String(Date.now()), name = file.name.replace(/\.gpx$/i,"");
-            gpxLayers.push({ id, name, poly });
-            map.fitBounds(poly.getBounds(), { padding: [40,40] });
+            gpxLayers.push({id, name, poly});
+            map.fitBounds(poly.getBounds(), {padding:[40,40]});
             updateGpxLayerList();
             infoEl.textContent = `✅ ${pts.length}개 포인트 불러옴`;
             infoEl.style.color = "rgba(100,255,150,0.9)";
-        } catch(err) {
+        } catch {
             infoEl.textContent = "❌ 파일을 읽을 수 없어요.";
             infoEl.style.color = "rgba(255,100,100,0.8)";
         }
@@ -418,21 +415,21 @@ function updateGpxLayerList() {
     const el = document.getElementById("gpx-layer-list"); if (!el) return;
     el.innerHTML = "";
     gpxLayers.forEach(layer => {
-        const item    = document.createElement("div"); item.className = "gpx-layer-item";
-        const nameEl  = document.createElement("span"); nameEl.className = "gpx-layer-name"; nameEl.textContent = "🔵 " + layer.name;
-        const delBtn  = document.createElement("button"); delBtn.className = "gpx-layer-remove"; delBtn.textContent = "✕";
-        delBtn.addEventListener("click", () => {
+        const item   = document.createElement("div"); item.className = "gpx-layer-item";
+        const nm     = Object.assign(document.createElement("span"), {className:"gpx-layer-name", textContent:"🔵 "+layer.name});
+        const del    = Object.assign(document.createElement("button"), {className:"gpx-layer-remove", textContent:"✕"});
+        del.addEventListener("click", () => {
             map.removeLayer(layer.poly);
             gpxLayers.splice(gpxLayers.indexOf(layer), 1);
             updateGpxLayerList();
-            if (gpxLayers.length === 0) document.getElementById("import-info").textContent = "";
+            if (!gpxLayers.length) document.getElementById("import-info").textContent = "";
         });
-        item.appendChild(nameEl); item.appendChild(delBtn); el.appendChild(item);
+        item.append(nm, del); el.appendChild(item);
     });
 }
 
 // =============================================
-// UI — HUD / 탭 / 사이드바
+// UI
 // =============================================
 function toggleHud() {
     isHudExpanded = !isHudExpanded;
@@ -449,8 +446,8 @@ function switchTab(name) {
 }
 
 function toggleSidebar(forceOpen) {
-    const sb  = document.getElementById("sidebar");
-    const ov  = document.getElementById("sidebar-overlay");
+    const sb = document.getElementById("sidebar");
+    const ov = document.getElementById("sidebar-overlay");
     if (!sb || !ov) return;
     const open = typeof forceOpen === "boolean" ? forceOpen : !sb.classList.contains("open");
     sb.classList.toggle("open", open);
@@ -493,12 +490,18 @@ function toggleRecording() {
 }
 
 function startTracking() {
-    if (!navigator.geolocation) { alert("위치 추적을 지원하지 않는 브라우저입니다."); isRecording = false; syncRecordingUI(); return; }
-    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-        alert("위치 추적은 HTTPS 또는 localhost에서만 동작합니다."); isRecording = false; syncRecordingUI(); return;
+    if (!navigator.geolocation) {
+        alert("위치 추적을 지원하지 않는 브라우저입니다.");
+        isRecording = false; syncRecordingUI(); return;
     }
-    watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError,
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 });
+    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        alert("위치 추적은 HTTPS 또는 localhost에서만 동작합니다.");
+        isRecording = false; syncRecordingUI(); return;
+    }
+    watchId = navigator.geolocation.watchPosition(
+        handlePosition, handleLocationError,
+        {enableHighAccuracy:true, maximumAge:3000, timeout:15000}
+    );
 }
 
 function stopTracking() {
@@ -510,17 +513,11 @@ function handlePosition(position) {
     const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
     currentPos   = latlng;
 
-    if (!playerMarker) {
-        playerMarker = L.marker(latlng, {
-            icon: L.divIcon({ className: "player-marker", iconSize: [18,18] })
-        }).addTo(map);
-        map.setView(latlng, 16);
-    } else {
-        playerMarker.setLatLng(latlng);
-    }
+    // 플레이어 마커 (marker-layer div 위에)
+    ensurePlayerMarker(latlng);
+    if (!map.getBounds().contains(latlng)) map.setView(latlng, map.getZoom());
 
     if (!isRecording) return;
-
     if (acc > MAX_ACCURACY_M) {
         recStatusBox.textContent = `GPS 약함 (${Math.round(acc)}m)`; return;
     }
@@ -532,12 +529,12 @@ function handlePosition(position) {
         updateStats(); scheduleSave(); scheduleRender(); return;
     }
 
-    const last  = pathCoordinates[pathCoordinates.length - 1];
-    const dist  = latlng.distanceTo([last.lat, last.lng]);
+    const last   = pathCoordinates[pathCoordinates.length - 1];
+    const dist   = latlng.distanceTo([last.lat, last.lng]);
     const thresh = Math.max(MIN_MOVE_M, Math.min(MAX_STAY_RADIUS_M, acc * STAY_ACCURACY_FACTOR));
 
     if (dist <= thresh) {
-        last.endTime = now; last.visits = (last.visits || 1) + 1;
+        last.endTime = now; last.visits = (last.visits||1) + 1;
         last.lat += (latlng.lat - last.lat) * 0.3;
         last.lng += (latlng.lng - last.lng) * 0.3;
     } else {
@@ -549,27 +546,25 @@ function handlePosition(position) {
 }
 
 function handleLocationError(err) {
-    const msg = { 1:"위치 권한이 거부되었습니다.", 2:"현재 위치를 확인할 수 없습니다.", 3:"위치 요청 시간이 초과되었습니다." };
+    const msg = {1:"위치 권한이 거부되었습니다.",2:"현재 위치를 확인할 수 없습니다.",3:"위치 요청 시간이 초과되었습니다."};
     alert(msg[err.code] || "위치 정보를 가져오지 못했습니다.");
     isRecording = false; syncRecordingUI(); stopTracking();
 }
 
-function mkPt(ll, ts) { return { lat: ll.lat, lng: ll.lng, startTime: ts, endTime: ts, visits: 1 }; }
+function mkPt(ll, ts) { return {lat:ll.lat, lng:ll.lng, startTime:ts, endTime:ts, visits:1}; }
 
 function calcTodayDistance() {
-    const start = new Date().setHours(0,0,0,0);
-    let d = 0;
-    for (let i = 1; i < pathCoordinates.length; i++) {
+    const start = new Date().setHours(0,0,0,0); let d = 0;
+    for (let i = 1; i < pathCoordinates.length; i++)
         if (pathCoordinates[i].startTime >= start)
             d += L.latLng(pathCoordinates[i].lat, pathCoordinates[i].lng)
                   .distanceTo([pathCoordinates[i-1].lat, pathCoordinates[i-1].lng]);
-    }
     return d;
 }
 
 function updateStats() {
-    document.getElementById("dist-val").innerHTML        = `${(totalDistance/1000).toFixed(2)}<span>km</span>`;
-    document.getElementById("today-dist-val").innerHTML  = `${(calcTodayDistance()/1000).toFixed(2)}<span>km</span>`;
+    document.getElementById("dist-val").innerHTML         = `${(totalDistance/1000).toFixed(2)}<span>km</span>`;
+    document.getElementById("today-dist-val").innerHTML   = `${(calcTodayDistance()/1000).toFixed(2)}<span>km</span>`;
     document.getElementById("memory-count-val").innerHTML = `${memories.length}<span>개</span>`;
     document.getElementById("photo-count-val").innerHTML  = `${photos.length}<span>개</span>`;
 }
@@ -578,94 +573,104 @@ function compactPathData() {
     if (pathCoordinates.length <= 1) return;
     const merged = [];
     for (const pt of pathCoordinates) {
-        const last = merged[merged.length - 1];
+        const last = merged[merged.length-1];
         if (!last) { merged.push({...pt}); continue; }
         const gap  = pt.startTime - last.endTime;
-        const dist = L.latLng(pt.lat, pt.lng).distanceTo([last.lat, last.lng]);
+        const dist = L.latLng(pt.lat,pt.lng).distanceTo([last.lat,last.lng]);
         if (dist <= MERGE_DISTANCE_M && gap <= MERGE_TIME_GAP_MS) {
-            const tv = (last.visits||1) + (pt.visits||1);
-            last.lat = (last.lat*(last.visits||1) + pt.lat*(pt.visits||1)) / tv;
-            last.lng = (last.lng*(last.visits||1) + pt.lng*(pt.visits||1)) / tv;
-            last.endTime = Math.max(last.endTime, pt.endTime);
+            const tv = (last.visits||1)+(pt.visits||1);
+            last.lat     = (last.lat*(last.visits||1)+pt.lat*(pt.visits||1))/tv;
+            last.lng     = (last.lng*(last.visits||1)+pt.lng*(pt.visits||1))/tv;
+            last.endTime = Math.max(last.endTime,pt.endTime);
             last.visits  = tv;
         } else { merged.push({...pt}); }
     }
     if (merged.length > MAX_PATH_POINTS) {
-        const tail  = merged.slice(-Math.floor(MAX_PATH_POINTS * 0.4));
-        const head  = merged.slice(0, merged.length - tail.length);
-        const ratio = Math.ceil(head.length / (MAX_PATH_POINTS - tail.length));
-        pathCoordinates = [...head.filter((_,i) => i % ratio === 0), ...tail].slice(-MAX_PATH_POINTS);
-    } else {
-        pathCoordinates = merged;
-    }
+        const tail  = merged.slice(-Math.floor(MAX_PATH_POINTS*0.4));
+        const head  = merged.slice(0,merged.length-tail.length);
+        const ratio = Math.ceil(head.length/(MAX_PATH_POINTS-tail.length));
+        pathCoordinates = [...head.filter((_,i)=>i%ratio===0),...tail].slice(-MAX_PATH_POINTS);
+    } else { pathCoordinates = merged; }
 }
 
 // =============================================
-// 메모리 마커
+// 메모리 마커 (marker-layer div)
 // =============================================
 function addMemory() {
     if (!currentPos) { alert("위치 정보를 수신 중입니다."); return; }
     const input = prompt("이 장소의 이름을 입력하세요:", "새로운 발견");
     if (input === null) return;
-    const now = new Date();
+    const now  = new Date();
     const data = {
         id: String(now.getTime()), lat: currentPos.lat, lng: currentPos.lng,
-        name: escHtml(input.trim() || "기억의 지점"), time: now.getTime(),
+        name: escHtml(input.trim()||"기억의 지점"), time: now.getTime(),
         dateString: now.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"}),
         timeString: now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})
     };
     memories.push(data);
-    createMemoryMarker(data, true);
+    createMemoryMarker(data);
     updateMemoryList(); updateStats(); scheduleSave();
 }
 
-function createMemoryMarker(data, openPopup = false) {
-    const marker = L.marker([data.lat, data.lng], {
-        pane: "memoryPane",
-        icon: L.divIcon({ className:"memory-marker", html:"★", iconSize:[28,28] })
-    }).addTo(map);
+function createMemoryMarker(data) {
+    const el = createMarkerEl(data.lat, data.lng, "★", "memory-marker-el", [-50, -50]);
+    el.title = data.name;
 
-    const pop = document.createElement("div");
-    const ttl = Object.assign(document.createElement("b"),   { textContent: data.name });
-    const inf = Object.assign(document.createElement("small"),{ textContent: `${data.dateString} ${data.timeString||""}` });
-    inf.style.display = "block";
-    const del = Object.assign(document.createElement("button"), { className:"popup-delete-btn", textContent:"삭제" });
-    del.addEventListener("click", () => deleteMemory(data.id));
-    pop.append(ttl, document.createElement("br"), inf, del);
+    // 팝업
+    const popup = document.createElement("div");
+    popup.className = "fixed-popup";
+    popup.innerHTML =
+        `<b>${data.name}</b><br>` +
+        `<small>${data.dateString} ${data.timeString||""}</small>` +
+        `<button class="popup-delete-btn" data-id="${data.id}">삭제</button>`;
+    popup.style.display = "none";
+    el.appendChild(popup);
 
-    marker.bindPopup(pop);
-    memoryMarkers.set(data.id, marker);
-    if (openPopup) marker.openPopup();
+    el.addEventListener("click", e => {
+        e.stopPropagation();
+        document.querySelectorAll(".fixed-popup").forEach(p => p.style.display="none");
+        popup.style.display = popup.style.display === "block" ? "none" : "block";
+    });
+    popup.querySelector(".popup-delete-btn").addEventListener("click", e => {
+        e.stopPropagation(); deleteMemory(data.id);
+    });
+
+    memoryMarkers.set(data.id, el);
 }
+
+// 지도 클릭 시 팝업 닫기
+document.addEventListener("click", () => {
+    document.querySelectorAll(".fixed-popup").forEach(p => p.style.display="none");
+});
 
 function deleteMemory(id) {
     memories = memories.filter(m => m.id !== id);
-    const mk = memoryMarkers.get(id); if (mk) { map.removeLayer(mk); memoryMarkers.delete(id); }
+    const el = memoryMarkers.get(id);
+    if (el) { el.remove(); memoryMarkers.delete(id); }
     updateMemoryList(); updateStats(); scheduleSave();
 }
 
 function updateMemoryList() {
     const box = document.getElementById("memory-list-container"); if (!box) return;
-    if (!memories.length) { box.innerHTML = '<p class="empty-message">아직 기록이 없습니다.</p>'; return; }
+    if (!memories.length) { box.innerHTML='<p class="empty-message">아직 기록이 없습니다.</p>'; return; }
     box.innerHTML = "";
     [...memories].reverse().forEach(m => {
-        const item = document.createElement("div"); item.className = "memory-item";
-        const nm   = Object.assign(document.createElement("span"), { className:"item-name", textContent:"★ "+m.name });
-        const dt   = Object.assign(document.createElement("span"), { className:"item-date", textContent:`${m.dateString} ${m.timeString||""}` });
-        const acts = document.createElement("div"); acts.className = "memory-actions";
-        const mv   = Object.assign(document.createElement("button"), { className:"memory-action-btn move",   textContent:"이동" });
-        const dl   = Object.assign(document.createElement("button"), { className:"memory-action-btn delete", textContent:"삭제" });
-        mv.onclick = e => { e.stopPropagation(); map.flyTo([m.lat,m.lng],17); };
-        dl.onclick = e => { e.stopPropagation(); deleteMemory(m.id); };
-        acts.append(mv, dl);
-        item.append(nm, dt, acts);
-        item.addEventListener("click", () => { map.flyTo([m.lat,m.lng],17); toggleSidebar(false); });
+        const item = document.createElement("div"); item.className="memory-item";
+        const nm   = Object.assign(document.createElement("span"),{className:"item-name",textContent:"★ "+m.name});
+        const dt   = Object.assign(document.createElement("span"),{className:"item-date",textContent:`${m.dateString} ${m.timeString||""}`});
+        const acts = document.createElement("div"); acts.className="memory-actions";
+        const mv   = Object.assign(document.createElement("button"),{className:"memory-action-btn move",textContent:"이동"});
+        const dl   = Object.assign(document.createElement("button"),{className:"memory-action-btn delete",textContent:"삭제"});
+        mv.onclick = e=>{e.stopPropagation();map.flyTo([m.lat,m.lng],17);};
+        dl.onclick = e=>{e.stopPropagation();deleteMemory(m.id);};
+        acts.append(mv,dl); item.append(nm,dt,acts);
+        item.addEventListener("click",()=>{map.flyTo([m.lat,m.lng],17);toggleSidebar(false);});
         box.appendChild(item);
     });
 }
 
 // =============================================
-// 사진 마커
+// 사진 마커 (marker-layer div)
 // =============================================
 function handlePhoto(event) {
     const file = event.target.files[0]; if (!file) return;
@@ -681,62 +686,64 @@ function handlePhoto(event) {
             timeString: now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})
         };
         photos.push(data);
-        createPhotoMarker(data, true);
+        createPhotoMarker(data);
         updatePhotoList(); updateStats(); scheduleSave();
         event.target.value = "";
     };
     reader.readAsDataURL(file);
 }
 
-function createPhotoMarker(data, openPopup = false) {
-    const marker = L.marker([data.lat, data.lng], {
-        pane: "memoryPane",
-        icon: L.divIcon({
-            className: "photo-marker",
-            html: `<img src="${data.photo}" alt="photo">`,
-            iconSize: [44,44], iconAnchor: [22,44]
-        })
-    }).addTo(map);
+function createPhotoMarker(data) {
+    const el = createMarkerEl(
+        data.lat, data.lng,
+        `<img src="${data.photo}" alt="photo" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:2px solid #ff8fa3;">`,
+        "photo-marker-el", [-50, -100]
+    );
 
-    const pop = document.createElement("div"); pop.className = "photo-popup";
-    const img = Object.assign(document.createElement("img"), { src: data.photo });
-    const inf = document.createElement("div");
-    inf.style.cssText = "font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin:6px 0 8px;";
-    inf.textContent = `${data.dateString} ${data.timeString}`;
-    const del = Object.assign(document.createElement("button"), { className:"popup-delete-btn", textContent:"사진 삭제" });
-    del.addEventListener("click", () => { deletePhoto(data.id); marker.closePopup(); });
-    pop.append(img, inf, del);
+    const popup = document.createElement("div");
+    popup.className = "fixed-popup";
+    popup.innerHTML =
+        `<img src="${data.photo}" style="width:200px;border-radius:8px;display:block;margin-bottom:6px;">` +
+        `<div style="font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:8px;">${data.dateString} ${data.timeString}</div>` +
+        `<button class="popup-delete-btn" data-id="${data.id}">사진 삭제</button>`;
+    popup.style.display = "none";
+    el.appendChild(popup);
 
-    marker.bindPopup(pop);
-    photoMarkers.set(data.id, marker);
-    if (openPopup) marker.openPopup();
+    el.addEventListener("click", e => {
+        e.stopPropagation();
+        document.querySelectorAll(".fixed-popup").forEach(p => p.style.display="none");
+        popup.style.display = popup.style.display === "block" ? "none" : "block";
+    });
+    popup.querySelector(".popup-delete-btn").addEventListener("click", e => {
+        e.stopPropagation(); deletePhoto(data.id);
+    });
+
+    photoMarkers.set(data.id, el);
 }
 
 function deletePhoto(id) {
     photos = photos.filter(p => p.id !== id);
-    const mk = photoMarkers.get(id); if (mk) { map.removeLayer(mk); photoMarkers.delete(id); }
+    const el = photoMarkers.get(id);
+    if (el) { el.remove(); photoMarkers.delete(id); }
     updatePhotoList(); updateStats(); scheduleSave();
 }
 
 function updatePhotoList() {
     const box = document.getElementById("photo-list-container"); if (!box) return;
-    if (!photos.length) { box.innerHTML = '<p class="empty-message">사진 기록이 없습니다.</p>'; return; }
+    if (!photos.length) { box.innerHTML='<p class="empty-message">사진 기록이 없습니다.</p>'; return; }
     box.innerHTML = "";
     [...photos].reverse().forEach(ph => {
-        const item = document.createElement("div"); item.className = "photo-item";
-        const img  = Object.assign(document.createElement("img"), { className:"photo-item-img", src:ph.photo, alt:"photo" });
-        img.addEventListener("click", () => { map.flyTo([ph.lat,ph.lng],17); toggleSidebar(false); });
-
-        const info = document.createElement("div"); info.className = "photo-item-info";
-        const dt   = Object.assign(document.createElement("span"), { className:"photo-item-date", textContent:`${ph.dateString} ${ph.timeString||""}` });
-        const acts = document.createElement("div"); acts.className = "photo-item-actions";
-        const mv   = Object.assign(document.createElement("button"), { className:"photo-action-btn move",   textContent:"이동" });
-        const dl   = Object.assign(document.createElement("button"), { className:"photo-action-btn delete", textContent:"삭제" });
-        mv.onclick = e => { e.stopPropagation(); map.flyTo([ph.lat,ph.lng],17); toggleSidebar(false); };
-        dl.onclick = e => { e.stopPropagation(); deletePhoto(ph.id); };
-        acts.append(mv, dl);
-        info.append(dt, acts);
-        item.append(img, info);
+        const item = document.createElement("div"); item.className="photo-item";
+        const img  = Object.assign(document.createElement("img"),{className:"photo-item-img",src:ph.photo,alt:"photo"});
+        img.addEventListener("click",()=>{map.flyTo([ph.lat,ph.lng],17);toggleSidebar(false);});
+        const info = document.createElement("div"); info.className="photo-item-info";
+        const dt   = Object.assign(document.createElement("span"),{className:"photo-item-date",textContent:`${ph.dateString} ${ph.timeString||""}`});
+        const acts = document.createElement("div"); acts.className="photo-item-actions";
+        const mv   = Object.assign(document.createElement("button"),{className:"photo-action-btn move",textContent:"이동"});
+        const dl   = Object.assign(document.createElement("button"),{className:"photo-action-btn delete",textContent:"삭제"});
+        mv.onclick = e=>{e.stopPropagation();map.flyTo([ph.lat,ph.lng],17);toggleSidebar(false);};
+        dl.onclick = e=>{e.stopPropagation();deletePhoto(ph.id);};
+        acts.append(mv,dl); info.append(dt,acts); item.append(img,info);
         box.appendChild(item);
     });
 }
@@ -746,18 +753,18 @@ function updatePhotoList() {
 // =============================================
 function scheduleSave() {
     if (saveTimer !== null) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { saveTimer = null; compactPathData(); persistState(); }, SAVE_DELAY_MS);
+    saveTimer = setTimeout(()=>{saveTimer=null;compactPathData();persistState();}, SAVE_DELAY_MS);
 }
 
 function persistState() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            pathCoordinates: pathCoordinates.map(p => ({ lat:p.lat, lng:p.lng, startTime:p.startTime, endTime:p.endTime, visits:p.visits||1 })),
-            memories:        memories.map(m => ({ id:m.id, lat:m.lat, lng:m.lng, name:m.name, time:m.time, dateString:m.dateString, timeString:m.timeString })),
-            photos:          photos.map(p => ({ id:p.id, lat:p.lat, lng:p.lng, photo:p.photo, time:p.time, dateString:p.dateString, timeString:p.timeString })),
+            pathCoordinates: pathCoordinates.map(p=>({lat:p.lat,lng:p.lng,startTime:p.startTime,endTime:p.endTime,visits:p.visits||1})),
+            memories:        memories.map(m=>({id:m.id,lat:m.lat,lng:m.lng,name:m.name,time:m.time,dateString:m.dateString,timeString:m.timeString})),
+            photos:          photos.map(p=>({id:p.id,lat:p.lat,lng:p.lng,photo:p.photo,time:p.time,dateString:p.dateString,timeString:p.timeString})),
             totalDistance
         }));
-    } catch(e) { console.error("저장 실패", e); }
+    } catch(e) { console.error("저장 실패",e); }
 }
 
 function loadState() {
@@ -766,23 +773,24 @@ function loadState() {
         const s   = JSON.parse(raw);
         if (Array.isArray(s.pathCoordinates))
             pathCoordinates = s.pathCoordinates
-                .filter(p => isFinite(p.lat) && isFinite(p.lng) && isFinite(p.startTime) && isFinite(p.endTime))
-                .map(p => ({ lat:p.lat, lng:p.lng, startTime:p.startTime, endTime:p.endTime, visits:isFinite(p.visits)?p.visits:1 }));
+                .filter(p=>isFinite(p.lat)&&isFinite(p.lng)&&isFinite(p.startTime)&&isFinite(p.endTime))
+                .map(p=>({lat:p.lat,lng:p.lng,startTime:p.startTime,endTime:p.endTime,visits:isFinite(p.visits)?p.visits:1}));
         if (Array.isArray(s.memories))
             memories = s.memories
-                .filter(m => isFinite(m.lat) && isFinite(m.lng) && typeof m.name === "string")
-                .map(m => ({ id:typeof m.id==="string"?m.id:String(m.time), lat:m.lat, lng:m.lng, name:m.name, time:m.time, dateString:m.dateString, timeString:m.timeString||"" }));
+                .filter(m=>isFinite(m.lat)&&isFinite(m.lng)&&typeof m.name==="string")
+                .map(m=>({id:typeof m.id==="string"?m.id:String(m.time),lat:m.lat,lng:m.lng,name:m.name,time:m.time,dateString:m.dateString,timeString:m.timeString||""}));
         if (Array.isArray(s.photos))
-            photos = s.photos.filter(p => isFinite(p.lat) && isFinite(p.lng) && typeof p.photo === "string");
+            photos = s.photos.filter(p=>isFinite(p.lat)&&isFinite(p.lng)&&typeof p.photo==="string");
         if (isFinite(s.totalDistance)) totalDistance = s.totalDistance;
         const fog = localStorage.getItem(FOG_ENABLED_KEY);
         if (fog !== null) isFogEnabled = fog === "true";
         compactPathData();
-    } catch(e) { console.error("복원 실패", e); }
+    } catch(e) { console.error("복원 실패",e); }
 }
 
 function escHtml(v) {
-    return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 
 // =============================================
@@ -791,8 +799,8 @@ function escHtml(v) {
 function init() {
     resizeCanvas();
     loadState();
-    memories.forEach(m => createMemoryMarker(m, false));
-    photos.forEach(p => createPhotoMarker(p, false));
+    memories.forEach(m => createMemoryMarker(m));
+    photos.forEach(p => createPhotoMarker(p));
     updateStats();
     updateMemoryList();
     updatePhotoList();
@@ -802,11 +810,3 @@ function init() {
 }
 
 map.whenReady(init);
-
-
-
-/* 이것도 테스트용 */
-
-
-map.on('move moveend zoomend', renderFog);
-window.addEventListener('resize', resizeCanvas); // resizeCanvas 함수에서 fogCanvas 크기를 조절해야 함
