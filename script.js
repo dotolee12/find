@@ -52,8 +52,7 @@ const memoryMarkers = new Map();
 
 let activeGpxId     = null;
 let activeGpxLayers = [];
-let dialStartOffset = 0;
-let dialEndOffset   = 0;
+let dialHours = 12; // 기본 12시간
 
 const recBtn       = document.getElementById("rec-btn");
 const recStatusBox = document.getElementById("rec-status-box");
@@ -715,62 +714,32 @@ function updatePhotoList() {
     });
 }
 
-function getDialDate(offset) {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d;
-}
-
-function formatDialLabel(offset) {
-    if (offset === 0)  return "오늘";
-    if (offset === -1) return "어제";
-    const d = getDialDate(offset);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-function adjustDial(which, dir) {
-    if (which === "start") {
-        const next = dialStartOffset + dir;
-        if (next > dialEndOffset) return;
-        dialStartOffset = next;
-    } else {
-        const next = dialEndOffset + dir;
-        if (next < dialStartOffset) return;
-        if (next > 0) return;
-        dialEndOffset = next;
-    }
+// ── 시간 다이얼 ───────────────────────────────────
+function adjustHourDial(dir) {
+    const next = dialHours + dir;
+    if (next < 1 || next > 20) return;
+    dialHours = next;
     updateDialUI();
 }
 
 function updateDialUI() {
-    document.getElementById("dial-start-label").textContent = formatDialLabel(dialStartOffset);
-    document.getElementById("dial-end-label").textContent   = formatDialLabel(dialEndOffset);
-    const days     = Math.abs(dialEndOffset - dialStartOffset) + 1;
-    const startStr = formatDialLabel(dialStartOffset);
-    const endStr   = formatDialLabel(dialEndOffset);
-    document.getElementById("gpx-range-info").textContent =
-        dialStartOffset === dialEndOffset
-            ? `선택된 기간: ${startStr} 하루`
-            : `선택된 기간: ${startStr} ~ ${endStr} (${days}일)`;
+    const labelEl = document.getElementById("dial-hour-label");
+    const infoEl  = document.getElementById("gpx-range-info");
+    if (labelEl) labelEl.textContent = dialHours + "시간";
+    if (infoEl)  infoEl.textContent  = `오늘 기준 최근 ${dialHours}시간 발걸음`;
 }
 
 function exportGpx() {
-    const startDate = getDialDate(dialStartOffset);
-    const endDate   = getDialDate(dialEndOffset);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    const now       = Date.now();
+    const sinceMs   = now - dialHours * 60 * 60 * 1000;
 
-    const filtered = pathCoordinates.filter(
-        p => p.startTime >= startDate.getTime() && p.startTime <= endDate.getTime()
-    );
+    const filtered = pathCoordinates.filter(p => p.startTime >= sinceMs);
 
-    if (filtered.length === 0) { alert("해당 기간에 기록된 경로가 없습니다."); return; }
+    if (filtered.length === 0) { alert("해당 시간에 기록된 발걸음이 없습니다."); return; }
 
     const nameInput = document.getElementById("gpx-export-name").value.trim();
-    const startStr  = formatDialLabel(dialStartOffset);
-    const endStr    = formatDialLabel(dialEndOffset);
-    const name = nameInput ||
-        (dialStartOffset === dialEndOffset ? `발자국 ${startStr}` : `발자국 ${startStr}~${endStr}`);
+    const name = nameInput || `발걸음 최근${dialHours}시간`;
+
 
     const trkpts = filtered.map(p => {
         const t = new Date(p.startTime).toISOString();
@@ -822,7 +791,7 @@ function updateGpxSavedList() {
     if (!container) return;
     const saves = loadGpxSaves();
     if (saves.length === 0) {
-        container.innerHTML = '<p class="empty-message">저장된 발자국이 없습니다.</p>';
+        container.innerHTML = '<p class="empty-message">저장된 발걸음이 없습니다.</p>';
         return;
     }
     container.innerHTML = "";
@@ -1163,7 +1132,8 @@ function renderStoredMarkers()      { memories.forEach(m => createMemoryMarker(m
 function renderStoredPhotoMarkers() { photos.forEach(p => createPhotoMarker(p, false)); }
 
 function initGpxDial() {
-    dialStartOffset = 0; dialEndOffset = 0; updateDialUI();
+    dialHours = 12;
+    updateDialUI();
 }
 
 function init() {

@@ -35,7 +35,7 @@
     <div class="sidebar-tabs">
         <div class="sidebar-tab active" id="tab-memory" onclick="switchTab('memory')">★<br><span>기억</span></div>
         <div class="sidebar-tab" id="tab-photo"  onclick="switchTab('photo')">🖼<br><span>사진</span></div>
-        <div class="sidebar-tab" id="tab-gpx"    onclick="switchTab('gpx')">👣<br><span>GPX</span></div>
+        <div class="sidebar-tab" id="tab-gpx"    onclick="switchTab('gpx')">👣<br><span>발걸음</span></div>
     </div>
 
     <div id="panel-memory" class="tab-panel">
@@ -51,38 +51,29 @@
     </div>
 
     <div id="panel-gpx" class="tab-panel" style="display:none;">
-        <div class="gpx-section-label">📤 발자국 추출</div>
+        <div class="gpx-section-label">🦶 발걸음 추출</div>
         <div class="gpx-dial-wrap">
             <div class="gpx-dial-row">
-                <span class="gpx-dial-icon">📅</span>
-                <span class="gpx-dial-title">시작일</span>
+                <span class="gpx-dial-icon">⏱</span>
+                <span class="gpx-dial-title">최근</span>
                 <div class="gpx-dial-controls">
-                    <button class="dial-btn" onclick="adjustDial('start',-1)">‹</button>
-                    <span class="dial-value" id="dial-start-label">오늘</span>
-                    <button class="dial-btn" onclick="adjustDial('start',1)">›</button>
+                    <button class="dial-btn" onclick="adjustHourDial(-1)">‹</button>
+                    <span class="dial-value" id="dial-hour-label">12시간</span>
+                    <button class="dial-btn" onclick="adjustHourDial(1)">›</button>
                 </div>
             </div>
-            <div class="gpx-dial-row">
-                <span class="gpx-dial-icon">📅</span>
-                <span class="gpx-dial-title">종료일</span>
-                <div class="gpx-dial-controls">
-                    <button class="dial-btn" onclick="adjustDial('end',-1)">‹</button>
-                    <span class="dial-value" id="dial-end-label">오늘</span>
-                    <button class="dial-btn" onclick="adjustDial('end',1)">›</button>
-                </div>
-            </div>
-            <div class="gpx-dial-range-info" id="gpx-range-info">선택된 기간: 오늘 하루</div>
+            <div class="gpx-dial-range-info" id="gpx-range-info">오늘 기준 최근 12시간 발걸음</div>
         </div>
         <div class="gpx-name-row">
-            <input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발자국 이름 (예: 한강 산책)">
+            <input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발걸음 이름 (예: 한강 산책)">
         </div>
-        <button class="gpx-action-btn export" onclick="exportGpx()">👣 이 발자국 저장하기</button>
+        <button class="gpx-action-btn export" onclick="exportGpx()">🦶 이 발걸음 저장하기</button>
 
         <div class="sidebar-divider" style="margin-top:18px;"></div>
 
-        <div class="gpx-section-label">📥 저장된 발자국 열기</div>
+        <div class="gpx-section-label">📥 저장된 발걸음 열기</div>
         <div id="gpx-saved-list">
-            <p class="empty-message">저장된 발자국이 없습니다.</p>
+            <p class="empty-message">저장된 발걸음이 없습니다.</p>
         </div>
         <button class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">
             📂 파일에서 불러오기
