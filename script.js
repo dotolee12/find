@@ -116,44 +116,58 @@ function renderFog() {
     const mpp    = calcMpp();
     const radius = metersToPixels(FOG_RADIUS_M, mpp);
 
-    fogCtx.save();
-    fogCtx.globalCompositeOperation = "destination-out";
+    // ✅ 오프스크린 캔버스에 먼저 경로를 그린 뒤 한 번에 적용 → 중첩 방지
+    const offscreen = document.createElement("canvas");
+    offscreen.width  = w;
+    offscreen.height = h;
+    const offCtx = offscreen.getContext("2d");
+    offCtx.fillStyle = "black";
+    offCtx.fillRect(0, 0, w, h);
+    offCtx.globalCompositeOperation = "source-over";
 
     if (pathCoordinates.length === 1) {
         const point    = pathCoordinates[0];
         const ageHours = (now - point.startTime) / 3600000;
-        fogCtx.globalAlpha = getPathVisibility(ageHours);
-        const stayMin    = (point.endTime - point.startTime) / 60000;
+        const alpha    = getPathVisibility(ageHours);
+        const stayMin  = (point.endTime - point.startTime) / 60000;
         const stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
-        fogCtx.beginPath();
-        fogCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
-        fogCtx.fill();
-        fogCtx.restore();
-        return;
+        offCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+        offCtx.beginPath();
+        offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
+        offCtx.fill();
+    } else {
+        for (let i = 1; i < pathCoordinates.length; i++) {
+            const point    = pathCoordinates[i];
+            const ageHours = (now - point.startTime) / 3600000;
+            const alpha    = getPathVisibility(ageHours);
+            const stayMin  = (point.endTime - point.startTime) / 60000;
+            const stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
+            const prev = map.latLngToContainerPoint([pathCoordinates[i-1].lat, pathCoordinates[i-1].lng]);
+            const pos  = map.latLngToContainerPoint([point.lat, point.lng]);
+
+            if (stayMin >= 10) {
+                offCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+                offCtx.beginPath();
+                offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
+                offCtx.fill();
+            }
+
+            offCtx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            offCtx.lineWidth   = radius * 2;
+            offCtx.lineCap     = "round";
+            offCtx.lineJoin    = "round";
+            offCtx.beginPath();
+            offCtx.moveTo(prev.x, prev.y);
+            offCtx.lineTo(pos.x, pos.y);
+            offCtx.stroke();
+        }
     }
 
-    for (let i = 1; i < pathCoordinates.length; i++) {
-        const point    = pathCoordinates[i];
-        const ageHours = (now - point.startTime) / 3600000;
-        fogCtx.globalAlpha = getPathVisibility(ageHours);
-        const stayMin    = (point.endTime - point.startTime) / 60000;
-        const stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
-        const prev = map.latLngToContainerPoint([pathCoordinates[i-1].lat, pathCoordinates[i-1].lng]);
-        const pos  = map.latLngToContainerPoint([point.lat, point.lng]);
-        if (stayMin >= 10) {
-            fogCtx.beginPath();
-            fogCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
-            fogCtx.fill();
-        }
-        fogCtx.beginPath();
-        fogCtx.lineWidth = radius * 2;
-        fogCtx.lineCap   = "round";
-        fogCtx.lineJoin  = "round";
-        fogCtx.moveTo(prev.x, prev.y);
-        fogCtx.lineTo(pos.x, pos.y);
-        fogCtx.stroke();
-    }
+    // 오프스크린을 fog에 한 번에 뚫기
+    fogCtx.save();
+    fogCtx.globalCompositeOperation = "destination-out";
+    fogCtx.drawImage(offscreen, 0, 0);
     fogCtx.restore();
 }
 
@@ -329,6 +343,25 @@ function toggleHud() {
     document.getElementById("hud").classList.toggle("expanded", isHudExpanded);
     document.getElementById("controls").classList.toggle("hud-open", isHudExpanded);
     document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded);
+
+    if (isHudExpanded) {
+        setTimeout(() => {
+            document.addEventListener("click", handleHudOutsideClick);
+        }, 0);
+    } else {
+        document.removeEventListener("click", handleHudOutsideClick);
+    }
+}
+
+function handleHudOutsideClick(event) {
+    const hud = document.getElementById("hud");
+    if (!hud.contains(event.target)) {
+        isHudExpanded = false;
+        hud.classList.remove("expanded");
+        document.getElementById("controls").classList.remove("hud-open");
+        document.getElementById("help-btn").classList.remove("hud-open");
+        document.removeEventListener("click", handleHudOutsideClick);
+    }
 }
 
 function syncRecordingUI() {
