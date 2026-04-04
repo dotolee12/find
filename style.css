@@ -459,12 +459,13 @@ html, body {
 /* ── HUD ── */
 #hud {
     position: absolute; bottom: 0; left: 0; right: 0;
-    background: transparent;
+    background: rgba(20,20,30,0.85);
     z-index: 999;
-    border-top: none;
-    backdrop-filter: none;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
     transition: height 0.3s ease; overflow: hidden; height: 36px;
 }
+#hud.expanded { height: 192px; }
 #hud.expanded { height: 192px; }
 
 #hud-handle {
