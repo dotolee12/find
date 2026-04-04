@@ -38,21 +38,18 @@
         <div class="sidebar-tab" id="tab-gpx"    onclick="switchTab('gpx')">👣<br><span>GPX</span></div>
     </div>
 
-    <!-- 기억 탭 -->
     <div id="panel-memory" class="tab-panel">
         <div id="memory-list-container">
             <p class="empty-message">아직 기록이 없습니다.</p>
         </div>
     </div>
 
-    <!-- 사진 탭 -->
     <div id="panel-photo" class="tab-panel" style="display:none;">
         <div id="photo-list-container">
             <p class="empty-message">아직 사진이 없습니다.</p>
         </div>
     </div>
 
-    <!-- GPX 탭 -->
     <div id="panel-gpx" class="tab-panel" style="display:none;">
         <div class="gpx-section-label">📤 발자국 추출</div>
         <div class="gpx-dial-wrap">
@@ -139,24 +136,58 @@
 </div>
 
 <div id="hud">
-    <div id="hud-handle" onclick="toggleHud()"><div class="handle-bar"></div></div>
+    <div id="hud-handle" onclick="toggleHud()">
+        <svg class="handle-bar" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/>
+            <path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+    </div>
     <div id="hud-basic">
-        <div class="stat">
-            <div class="label">전체 이동 거리</div>
-            <div id="dist-val" class="value">0.00<span>km</span></div>
+
+        <!-- 1단: 칭호 + 레벨 -->
+        <div id="hud-title-row">
+            <div id="hud-title-wrap">
+                <div id="hud-title-label">현재 칭호</div>
+                <div id="hud-title-text">길 없는 자</div>
+            </div>
+            <div id="hud-level-wrap">
+                <div id="hud-level-label">LV</div>
+                <div id="hud-level-num">1</div>
+            </div>
         </div>
-        <div class="stat">
-            <div class="label">오늘 이동 거리</div>
-            <div id="today-dist-val" class="value">0.00<span>km</span></div>
+
+        <!-- 2단: 다음 레벨 진행도 -->
+        <div id="hud-progress-row">
+
+            <div class="hud-prog-item">
+                <div class="hud-prog-label">이동 거리</div>
+                <div class="hud-prog-current" id="prog-dist-cur">0.00 km</div>
+                <div class="hud-prog-bar-wrap">
+                    <div class="hud-prog-bar" id="prog-dist-bar" style="width:0%;background:#4db8ff;"></div>
+                </div>
+                <div class="hud-prog-next" id="prog-dist-next">다음까지 —</div>
+            </div>
+
+            <div class="hud-prog-item">
+                <div class="hud-prog-label">기억 저장</div>
+                <div class="hud-prog-current" id="prog-mem-cur">0 개</div>
+                <div class="hud-prog-bar-wrap">
+                    <div class="hud-prog-bar" id="prog-mem-bar" style="width:0%;background:#ffd84d;"></div>
+                </div>
+                <div class="hud-prog-next" id="prog-mem-next">다음까지 —</div>
+            </div>
+
+            <div class="hud-prog-item">
+                <div class="hud-prog-label">사진 저장</div>
+                <div class="hud-prog-current" id="prog-photo-cur">0 개</div>
+                <div class="hud-prog-bar-wrap">
+                    <div class="hud-prog-bar" id="prog-photo-bar" style="width:0%;background:#a78bfa;"></div>
+                </div>
+                <div class="hud-prog-next" id="prog-photo-next">다음까지 —</div>
+            </div>
+
         </div>
-        <div class="stat">
-            <div class="label">기억 저장 수</div>
-            <div id="memory-count-val" class="value">0<span>개</span></div>
-        </div>
-        <div class="stat">
-            <div class="label">사진 저장 수</div>
-            <div id="photo-count-val" class="value">0<span>개</span></div>
-        </div>
+
     </div>
 </div>
 

@@ -4,7 +4,7 @@ const GPX_SAVES_KEY      = "giloa-gpx-saves";
 const FOG_ALPHA          = 0.8;
 const FOG_RADIUS_M       = 18;
 const MIN_MOVE_M         = 15;
-const MAX_ACCURACY_M     = 50;   // 완화: 20 → 50
+const MAX_ACCURACY_M     = 50;
 const STAY_ACCURACY_FACTOR = 0.6;
 const MAX_STAY_RADIUS_M  = 36;
 const SAVE_DELAY_MS      = 800;
@@ -23,6 +23,17 @@ const SIX_MONTHS_DAYS      = 180;
 const ONE_YEAR_DAYS        = 365;
 const SEDIMENT_LAYER_COLOR = "rgba(126, 112, 96, 0.24)";
 
+// ── 레벨 테이블 ───────────────────────────────────
+const LEVEL_TABLE = [
+    { level: 1, title: "길 없는 자",          distKm: 0,   memories: 0,  photos: 0  },
+    { level: 2, title: "흔적을 남긴 자",      distKm: 1,   memories: 0,  photos: 0  },
+    { level: 3, title: "탐험자",              distKm: 10,  memories: 1,  photos: 0  },
+    { level: 4, title: "길을 만든 자",        distKm: 30,  memories: 3,  photos: 0  },
+    { level: 5, title: "기억을 수집하는 자",  distKm: 50,  memories: 5,  photos: 3  },
+    { level: 6, title: "개척자",              distKm: 100, memories: 10, photos: 7  },
+    { level: 7, title: "세계의 기록자",       distKm: 200, memories: 20, photos: 15 },
+];
+
 // ── 상태 ──────────────────────────────────────────
 let isRecording     = false;
 let photos          = [];
@@ -39,17 +50,14 @@ let saveTimer       = null;
 let rafId           = null;
 const memoryMarkers = new Map();
 
-// GPX 상태
 let activeGpxId     = null;
 let activeGpxLayers = [];
 let dialStartOffset = 0;
 let dialEndOffset   = 0;
 
-// ── DOM ───────────────────────────────────────────
 const recBtn       = document.getElementById("rec-btn");
 const recStatusBox = document.getElementById("rec-status-box");
 
-// ── 지도 ──────────────────────────────────────────
 const map = L.map("map", { zoomControl: false, attributionControl: false })
     .setView([37.5665, 126.978], 16);
 
@@ -58,7 +66,6 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").ad
 map.createPane("memoryPane");
 map.getPane("memoryPane").style.zIndex = 500;
 
-// ── 캔버스 ────────────────────────────────────────
 const fogCanvas  = document.getElementById("fog-canvas");
 const ageCanvas  = document.getElementById("age-canvas");
 const stayCanvas = document.getElementById("stay-canvas");
@@ -94,7 +101,6 @@ function render() {
     renderStayTint();
 }
 
-// ── 픽셀 변환 ────────────────────────────────────
 function calcMpp() {
     const center = map.getCenter();
     const pt  = map.latLngToContainerPoint(center);
@@ -106,8 +112,6 @@ function metersToPixels(meters, mpp) {
     return (meters / mpp) * 10;
 }
 
-// ── 안개 레이어 ───────────────────────────────────
-// 변경: 선만 그려 번짐 제거 + 머문 시간만큼 원으로 넓게 뚫기
 function renderFog() {
     const w = fogCanvas.width, h = fogCanvas.height;
     fogCtx.clearRect(0, 0, w, h);
@@ -124,7 +128,6 @@ function renderFog() {
     fogCtx.save();
     fogCtx.globalCompositeOperation = "destination-out";
 
-    // 점이 하나뿐일 때
     if (pathCoordinates.length === 1) {
         const point    = pathCoordinates[0];
         const ageHours = (now - point.startTime) / 3600000;
@@ -153,14 +156,12 @@ function renderFog() {
         ]);
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
 
-        // 머문 곳: 시간에 비례해 원으로 넓게 뚫기
         if (stayMin >= 10) {
             fogCtx.beginPath();
             fogCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
             fogCtx.fill();
         }
 
-        // 이동 경로: 선으로만 그려 번짐 제거
         fogCtx.beginPath();
         fogCtx.lineWidth = radius * 2;
         fogCtx.lineCap   = "round";
@@ -180,7 +181,6 @@ function getPathVisibility(ageHours) {
     return 1 - (1 - MIN_PATH_VISIBILITY) * progress;
 }
 
-// ── 경과 일수 색상 레이어 ─────────────────────────
 function renderAgeTint() {
     const w = ageCanvas.width, h = ageCanvas.height;
     ageCtx.clearRect(0, 0, w, h);
@@ -228,7 +228,6 @@ function getAgeColor(ageDays) {
     return SEDIMENT_LAYER_COLOR;
 }
 
-// ── 머문 시간 노란 레이어 ─────────────────────────
 function renderStayTint() {
     const w = stayCanvas.width, h = stayCanvas.height;
     stayCtx.clearRect(0, 0, w, h);
@@ -262,7 +261,108 @@ function getStayRadiusMeters(stayMin) {
     return FOG_RADIUS_M * (1.0 + progress);
 }
 
-// ── HUD ───────────────────────────────────────────
+// ── 레벨 계산 ─────────────────────────────────────
+function calcLevel() {
+    const distKm     = totalDistance / 1000;
+    const memCount   = memories.length;
+    const photoCount = photos.length;
+
+    let currentLevel = LEVEL_TABLE[0];
+    for (const row of LEVEL_TABLE) {
+        if (distKm >= row.distKm && memCount >= row.memories && photoCount >= row.photos) {
+            currentLevel = row;
+        } else {
+            break;
+        }
+    }
+    return currentLevel;
+}
+
+// ── HUD 업데이트 ──────────────────────────────────
+function updateHud() {
+    const current    = calcLevel();
+    const distKm     = totalDistance / 1000;
+    const memCount   = memories.length;
+    const photoCount = photos.length;
+
+    const titleEl = document.getElementById("hud-title-text");
+    const levelEl = document.getElementById("hud-level-num");
+    if (titleEl) titleEl.textContent = current.title;
+    if (levelEl) levelEl.textContent = current.level;
+
+    const nextRow = LEVEL_TABLE.find(r => r.level === current.level + 1);
+
+    // 거리 진행도
+    const distCurEl  = document.getElementById("prog-dist-cur");
+    const distBarEl  = document.getElementById("prog-dist-bar");
+    const distNextEl = document.getElementById("prog-dist-next");
+    if (distCurEl) distCurEl.textContent = distKm.toFixed(2) + " km";
+    if (distBarEl && distNextEl) {
+        if (!nextRow) {
+            distBarEl.style.width = "100%";
+            distNextEl.textContent = "최고 레벨 달성!";
+        } else {
+            const prevDist = current.distKm;
+            const nextDist = nextRow.distKm;
+            const pct = nextDist > prevDist
+                ? Math.min(100, ((distKm - prevDist) / (nextDist - prevDist)) * 100)
+                : 100;
+            distBarEl.style.width = pct.toFixed(1) + "%";
+            const remain = Math.max(0, nextDist - distKm);
+            distNextEl.textContent = remain > 0.01
+                ? `다음까지 ${remain.toFixed(1)}km`
+                : "조건 충족!";
+        }
+    }
+
+    // 기억 진행도
+    const memCurEl  = document.getElementById("prog-mem-cur");
+    const memBarEl  = document.getElementById("prog-mem-bar");
+    const memNextEl = document.getElementById("prog-mem-next");
+    if (memCurEl) memCurEl.textContent = memCount + " 개";
+    if (memBarEl && memNextEl) {
+        if (!nextRow || nextRow.memories === 0) {
+            memBarEl.style.width = "100%";
+            memNextEl.textContent = nextRow ? "조건 없음" : "최고!";
+        } else {
+            const prevMem = current.memories;
+            const nextMem = nextRow.memories;
+            const pct = nextMem > prevMem
+                ? Math.min(100, ((memCount - prevMem) / (nextMem - prevMem)) * 100)
+                : 100;
+            memBarEl.style.width = pct.toFixed(1) + "%";
+            const remain = Math.max(0, nextMem - memCount);
+            memNextEl.textContent = remain > 0
+                ? `다음까지 ${remain}개`
+                : "조건 충족!";
+        }
+    }
+
+    // 사진 진행도
+    const photoCurEl  = document.getElementById("prog-photo-cur");
+    const photoBarEl  = document.getElementById("prog-photo-bar");
+    const photoNextEl = document.getElementById("prog-photo-next");
+    if (photoCurEl) photoCurEl.textContent = photoCount + " 개";
+    if (photoBarEl && photoNextEl) {
+        if (!nextRow || nextRow.photos === 0) {
+            photoBarEl.style.width = "100%";
+            photoNextEl.textContent = nextRow ? "조건 없음" : "최고!";
+        } else {
+            const prevPhoto = current.photos;
+            const nextPhoto = nextRow.photos;
+            const pct = nextPhoto > prevPhoto
+                ? Math.min(100, ((photoCount - prevPhoto) / (nextPhoto - prevPhoto)) * 100)
+                : 100;
+            photoBarEl.style.width = pct.toFixed(1) + "%";
+            const remain = Math.max(0, nextPhoto - photoCount);
+            photoNextEl.textContent = remain > 0
+                ? `다음까지 ${remain}개`
+                : "조건 충족!";
+        }
+    }
+}
+
+// ── HUD 토글 ──────────────────────────────────────
 function toggleHud() {
     isHudExpanded = !isHudExpanded;
     document.getElementById("hud").classList.toggle("expanded", isHudExpanded);
@@ -270,7 +370,6 @@ function toggleHud() {
     document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded);
 }
 
-// ── UI 동기화 ─────────────────────────────────────
 function syncRecordingUI() {
     recBtn.classList.toggle("recording", isRecording);
     recStatusBox.textContent = isRecording ? "기록 중" : "대기 중";
@@ -294,7 +393,6 @@ function toggleHelp() {
     document.getElementById("help-popup").classList.toggle("show");
 }
 
-// ── 기록 토글 ─────────────────────────────────────
 function resetRecordingState() {
     isRecording = false;
     syncRecordingUI();
@@ -322,7 +420,6 @@ function toggleFog() {
     scheduleRender();
 }
 
-// ── GPS ───────────────────────────────────────────
 function startTracking() {
     if (!navigator.geolocation) {
         alert("이 브라우저는 위치 추적을 지원하지 않습니다.");
@@ -364,12 +461,10 @@ function handlePosition(position) {
 
     if (!isRecording) return;
 
-    // 100m 초과: 너무 튀는 값 스킵
     if (accuracy > 100) {
         recStatusBox.textContent = `GPS 너무 약함 (${Math.round(accuracy)}m)`;
         return;
     }
-    // 50~100m: 경고만, 기록은 계속
     if (accuracy > MAX_ACCURACY_M) {
         recStatusBox.textContent = `GPS 약함 (${Math.round(accuracy)}m)`;
     } else {
@@ -429,7 +524,6 @@ function getDynamicStayThreshold(accuracy) {
     return Math.max(MIN_MOVE_M, Math.min(MAX_STAY_RADIUS_M, accuracy * STAY_ACCURACY_FACTOR));
 }
 
-// ── 오늘 거리 ─────────────────────────────────────
 function calcTodayDistance() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -445,16 +539,15 @@ function calcTodayDistance() {
     return dist;
 }
 
-// ── 통계 업데이트 ─────────────────────────────────
 function updateStats() {
     const todayDist = calcTodayDistance();
     document.getElementById("dist-val").innerHTML       = `${(totalDistance / 1000).toFixed(2)}<span>km</span>`;
     document.getElementById("today-dist-val").innerHTML = `${(todayDist / 1000).toFixed(2)}<span>km</span>`;
     document.getElementById("memory-count-val").innerHTML = `${memories.length}<span>개</span>`;
     document.getElementById("photo-count-val").innerHTML  = `${photos.length}<span>개</span>`;
+    updateHud();
 }
 
-// ── 경로 압축 ─────────────────────────────────────
 function compactPathData() {
     if (pathCoordinates.length <= 1) return;
     const merged = [];
@@ -485,7 +578,6 @@ function shrinkOldPoints(points, maxPoints) {
     return [...head.filter((_, i) => i % ratio === 0), ...tail].slice(-maxPoints);
 }
 
-// ── 기억 마킹 ─────────────────────────────────────
 function addMemory() {
     if (!currentPos) { alert("위치 정보를 수신 중입니다."); return; }
     const input = prompt("이 장소의 이름을 입력하세요:", "새로운 발견");
@@ -581,7 +673,6 @@ function updateMemoryList() {
     });
 }
 
-// ── 탭 전환 ───────────────────────────────────────
 function switchTab(tab) {
     ["memory", "photo", "gpx"].forEach(t => {
         document.getElementById("tab-" + t).classList.toggle("active", t === tab);
@@ -591,7 +682,6 @@ function switchTab(tab) {
     if (tab === "gpx")   updateGpxSavedList();
 }
 
-// ── 사진 목록 ─────────────────────────────────────
 function updatePhotoList() {
     const container = document.getElementById("photo-list-container");
     if (!container) return;
@@ -625,7 +715,6 @@ function updatePhotoList() {
     });
 }
 
-// ── GPX 다이얼 ────────────────────────────────────
 function getDialDate(offset) {
     const d = new Date();
     d.setDate(d.getDate() + offset);
@@ -665,7 +754,6 @@ function updateDialUI() {
             : `선택된 기간: ${startStr} ~ ${endStr} (${days}일)`;
 }
 
-// ── GPX 내보내기 ──────────────────────────────────
 function exportGpx() {
     const startDate = getDialDate(dialStartOffset);
     const endDate   = getDialDate(dialEndOffset);
@@ -721,7 +809,6 @@ ${trkpts}
     document.getElementById("gpx-import-status").textContent = `✓ "${name}" 저장 완료`;
 }
 
-// ── GPX 저장 목록 ─────────────────────────────────
 function loadGpxSaves() {
     try { return JSON.parse(localStorage.getItem(GPX_SAVES_KEY) || "[]"); }
     catch { return []; }
@@ -819,7 +906,6 @@ function drawGpxRoute(gpxContent, id) {
     map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
 }
 
-// ── 파일에서 GPX 불러오기 ─────────────────────────
 function importGpxFile(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -856,7 +942,6 @@ function importGpxFile(event) {
     event.target.value = "";
 }
 
-// ── 사이드바 ─────────────────────────────────────
 function toggleSidebar(forceOpen) {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("sidebar-overlay");
@@ -872,7 +957,6 @@ function centerMap() {
     if (currentPos) map.panTo(currentPos);
 }
 
-// ── localStorage ──────────────────────────────────
 function scheduleSave() {
     if (saveTimer !== null) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { saveTimer = null; compactPathData(); persistState(); }, SAVE_DELAY_MS);
@@ -934,7 +1018,6 @@ function loadState() {
     } catch (e) { console.error("복원 실패", e); }
 }
 
-// ── 사진 처리 ─────────────────────────────────────
 function handlePhoto(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1076,7 +1159,6 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
-// ── 초기화 ────────────────────────────────────────
 function renderStoredMarkers()      { memories.forEach(m => createMemoryMarker(m, false)); }
 function renderStoredPhotoMarkers() { photos.forEach(p => createPhotoMarker(p, false)); }
 
