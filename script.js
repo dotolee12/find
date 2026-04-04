@@ -116,14 +116,14 @@ function renderFog() {
     const mpp    = calcMpp();
     const radius = metersToPixels(FOG_RADIUS_M, mpp);
 
-    // ✅ 오프스크린 캔버스에 먼저 경로를 그린 뒤 한 번에 적용 → 중첩 방지
+    // 오프스크린에 경로 마스크 생성
     const offscreen = document.createElement("canvas");
     offscreen.width  = w;
     offscreen.height = h;
     const offCtx = offscreen.getContext("2d");
-    offCtx.fillStyle = "black";
-    offCtx.fillRect(0, 0, w, h);
-    offCtx.globalCompositeOperation = "source-over";
+
+    // 오프스크린은 완전 투명으로 시작
+    offCtx.clearRect(0, 0, w, h);
 
     if (pathCoordinates.length === 1) {
         const point    = pathCoordinates[0];
@@ -132,7 +132,7 @@ function renderFog() {
         const stayMin  = (point.endTime - point.startTime) / 60000;
         const stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
-        offCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+        offCtx.fillStyle = `rgba(0,0,0,${alpha})`;
         offCtx.beginPath();
         offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
         offCtx.fill();
@@ -147,13 +147,13 @@ function renderFog() {
             const pos  = map.latLngToContainerPoint([point.lat, point.lng]);
 
             if (stayMin >= 10) {
-                offCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+                offCtx.fillStyle = `rgba(0,0,0,${alpha})`;
                 offCtx.beginPath();
                 offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
                 offCtx.fill();
             }
 
-            offCtx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            offCtx.strokeStyle = `rgba(0,0,0,${alpha})`;
             offCtx.lineWidth   = radius * 2;
             offCtx.lineCap     = "round";
             offCtx.lineJoin    = "round";
