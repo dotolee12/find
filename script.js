@@ -389,8 +389,22 @@ function syncFogButton() {
 }
 
 function toggleHelp() {
-    document.getElementById("help-popup").classList.toggle("show");
+    const popup = document.getElementById("help-popup");
+    popup.classList.toggle("show");
 }
+
+function handleHelpOverlayClick(event) {
+    const box = document.getElementById("help-content-box");
+    if (!box.contains(event.target)) toggleHelp();
+}
+
+function switchHelpTab(tab) {
+    ["ask", "info"].forEach(t => {
+        document.getElementById("htab-" + t).classList.toggle("active", t === tab);
+        document.getElementById("hpanel-" + t).style.display = t === tab ? "" : "none";
+    });
+}
+
 
 function resetRecordingState() {
     isRecording = false;
