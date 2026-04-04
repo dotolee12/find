@@ -19,7 +19,6 @@
         <span onclick="toggleSidebar(false)" class="close-btn">✕</span>
     </div>
 
-    <!-- 어둠 효과 토글 -->
     <div id="fog-toggle-wrap">
         <div class="fog-toggle-row" onclick="toggleFog()">
             <span class="fog-toggle-label">어둠 효과</span>
@@ -33,7 +32,6 @@
         <div class="sidebar-divider"></div>
     </div>
 
-    <!-- 3탭 -->
     <div class="sidebar-tabs">
         <div class="sidebar-tab active" id="tab-memory" onclick="switchTab('memory')">★<br><span>기억</span></div>
         <div class="sidebar-tab" id="tab-photo"  onclick="switchTab('photo')">🖼<br><span>사진</span></div>
@@ -56,10 +54,7 @@
 
     <!-- GPX 탭 -->
     <div id="panel-gpx" class="tab-panel" style="display:none;">
-
-        <!-- 추출 섹션 -->
         <div class="gpx-section-label">📤 발자국 추출</div>
-
         <div class="gpx-dial-wrap">
             <div class="gpx-dial-row">
                 <span class="gpx-dial-icon">📅</span>
@@ -81,7 +76,6 @@
             </div>
             <div class="gpx-dial-range-info" id="gpx-range-info">선택된 기간: 오늘 하루</div>
         </div>
-
         <div class="gpx-name-row">
             <input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발자국 이름 (예: 한강 산책)">
         </div>
@@ -89,13 +83,10 @@
 
         <div class="sidebar-divider" style="margin-top:18px;"></div>
 
-        <!-- 불러오기 섹션 -->
         <div class="gpx-section-label">📥 저장된 발자국 열기</div>
-
         <div id="gpx-saved-list">
             <p class="empty-message">저장된 발자국이 없습니다.</p>
         </div>
-
         <button class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">
             📂 파일에서 불러오기
         </button>
