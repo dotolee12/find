@@ -469,14 +469,14 @@ html, body {
 
 #hud-handle {
     display: flex; justify-content: center;
-    align-items: center; padding: 6px 0 4px; cursor: pointer;
+    align-items: center; padding: 5px 0; cursor: pointer;
 }
 .handle-bar {
     width: 26px; height: 26px;
-    opacity: 0.35; transition: opacity 0.2s;
+    opacity: 0.55; transition: opacity 0.2s;
 }
 #hud-handle:hover .handle-bar,
-#hud.expanded #hud-handle .handle-bar { opacity: 0.75; }
+#hud.expanded #hud-handle .handle-bar { opacity: 0.9; }
 
 #hud-basic {
     opacity: 0; transform: translateY(6px);
