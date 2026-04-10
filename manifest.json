@@ -1,0 +1,9 @@
+{
+  "name": "나의 대동여지도 - Project Giloa",
+  "short_name": "Giloa",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0d18",
+  "theme_color": "#0d0d18",
+  "lang": "ko-KR"
+}
