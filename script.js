@@ -66,7 +66,13 @@ const map = L.map("map", { zoomControl: false, attributionControl: false })
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
 
 map.createPane("memoryPane");
-map.getPane("memoryPane").style.zIndex = 500;
+map.getPane("memoryPane").style.zIndex = 600;
+map.createPane("fogPane");
+map.getPane("fogPane").style.zIndex = 350;
+map.createPane("agePane");
+map.getPane("agePane").style.zIndex = 351;
+map.createPane("stayPane");
+map.getPane("stayPane").style.zIndex = 352;
 
 const photoClusterGroup = L.markerClusterGroup({
     maxClusterRadius: 60,
@@ -88,6 +94,14 @@ const stayCanvas = document.getElementById("stay-canvas");
 const fogCtx     = fogCanvas.getContext("2d");
 const ageCtx     = ageCanvas.getContext("2d");
 const stayCtx    = stayCanvas.getContext("2d");
+
+attachEffectCanvasesToMap();
+
+function attachEffectCanvasesToMap() {
+    map.getPane("fogPane").appendChild(fogCanvas);
+    map.getPane("agePane").appendChild(ageCanvas);
+    map.getPane("stayPane").appendChild(stayCanvas);
+}
 
 function resizeCanvas() {
     const w = window.innerWidth  + 2;
