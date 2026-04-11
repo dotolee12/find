@@ -1,7 +1,12 @@
 const STORAGE_KEY        = "giloa-v7";
 const FOG_ENABLED_KEY    = "giloa-fog-enabled";
 const GPX_SAVES_KEY      = "giloa-gpx-saves";
-const FOG_ALPHA          = 0.8;
+const FOG_ALPHA_BASE     = 0.80; // LV1 기준 안개 농도 (80%)
+const FOG_ALPHA_PER_LV   = 0.01; // 레벨당 1%씩 밝아짐
+function getFogAlpha() {
+    const lv = calcLevel().level;
+    return Math.max(0, FOG_ALPHA_BASE - (lv - 1) * FOG_ALPHA_PER_LV);
+}
 const FOG_RADIUS_M       = 18;
 const MIN_MOVE_M         = 15;
 const MAX_ACCURACY_M     = 50;
@@ -30,14 +35,29 @@ const MARKER_MAX_ZOOM = 17;
 const MARKER_MIN_ZOOM = 14;
 
 const LEVEL_TABLE = [
-{ level: 1, title: "길 없는 자",          distKm: 0,   memories: 0,  photos: 0  },
-{ level: 2, title: "흔적을 남긴 자",      distKm: 1,   memories: 0,  photos: 0  },
-{ level: 3, title: "탐험자",              distKm: 10,  memories: 1,  photos: 0  },
-{ level: 4, title: "길을 만든 자",        distKm: 30,  memories: 3,  photos: 0  },
-{ level: 5, title: "기억을 수집하는 자",  distKm: 50,  memories: 5,  photos: 3  },
-{ level: 6, title: "개척자",              distKm: 100, memories: 10, photos: 7  },
-{ level: 7, title: "세계의 기록자",       distKm: 200, memories: 20, photos: 15 },
+{ level: 1,  title: "길 없는 자",          distKm: 0,    memories: 0,  photos: 0   },
+{ level: 2,  title: "흔적을 남긴 자",      distKm: 1,    memories: 0,  photos: 0   },
+{ level: 3,  title: "탐험자",              distKm: 10,   memories: 1,  photos: 0   },
+{ level: 4,  title: "길을 만든 자",        distKm: 30,   memories: 3,  photos: 0   },
+{ level: 5,  title: "바람을 걷는 자",      distKm: 60,   memories: 5,  photos: 3   },
+{ level: 6,  title: "기억을 수집하는 자",  distKm: 100,  memories: 8,  photos: 5   },
+{ level: 7,  title: "두 바퀴의 여행자",    distKm: 150,  memories: 12, photos: 8   },
+{ level: 8,  title: "지도를 그리는 자",    distKm: 220,  memories: 18, photos: 12  },
+{ level: 9,  title: "길의 연대기",         distKm: 300,  memories: 25, photos: 18  },
+{ level: 10, title: "개척자",              distKm: 400,  memories: 35, photos: 25  },
+{ level: 11, title: "속도의 탐험가",       distKm: 550,  memories: 45, photos: 33  },
+{ level: 12, title: "궤도를 달리는 자",    distKm: 720,  memories: 58, photos: 43  },
+{ level: 13, title: "대륙을 가로지르는 자",distKm: 900,  memories: 72, photos: 55  },
+{ level: 14, title: "세계의 증인",         distKm: 1100, memories: 88, photos: 68  },
+{ level: 15, title: "세계의 기록자",       distKm: 1350, memories: 107,photos: 84  },
 ];
+
+// 속도 제한 (레벨에 따라 마킹 가능한 최대 속도)
+// LV 1~4:  걷기만  → 0~7 km/h
+// LV 5~14: 자전거까지 → 0~30 km/h
+// LV 15+:  제한 없음
+const SPEED_LIMIT_WALK   = 7  / 3.6; // m/s
+const SPEED_LIMIT_BIKE   = 30 / 3.6; // m/s
 
 // ── IndexedDB (사진 이미지 전용) ──────────────────────────────
 const IDB_NAME    = "giloa-photos";
@@ -107,6 +127,14 @@ const memoryMarkers = new Map();
 let activeGpxId     = null;
 let activeGpxLayers = [];
 let dialHours       = 12;
+
+// 체류 보너스 관련
+const STAY_BONUS_MS        = 30 * 60 * 1000; // 30분
+const STAY_BONUS_RADIUS_M  = 50;             // 반경 50m 이내 머물러야 함
+let stayBonusStartTime     = null;           // 현재 장소에서 머문 시작 시간
+let stayBonusAnchor        = null;           // 체류 기준 좌표
+let stayBonusLevelBoost    = 0;              // 보너스로 추가된 레벨 수
+let stayBonusPlaces        = [];             // 보너스를 받은 장소 목록 [{lat, lng}]
 
 const recBtn       = document.getElementById("rec-btn");
 const recStatusBox = document.getElementById("rec-status-box");
@@ -178,7 +206,7 @@ function renderFog() {
     const w = fogCanvas.width, h = fogCanvas.height;
     fogCtx.clearRect(0, 0, w, h);
     if (!isFogEnabled) return;
-    fogCtx.fillStyle = `rgba(8, 10, 18, ${FOG_ALPHA})`;
+    fogCtx.fillStyle = `rgba(8, 10, 18, ${getFogAlpha()})`;
     fogCtx.fillRect(0, 0, w, h);
     if (pathCoordinates.length === 0) return;
 
@@ -369,7 +397,9 @@ function calcLevel() {
             currentLevel = row;
         } else { break; }
     }
-    return currentLevel;
+    // 체류 보너스 레벨 추가 (최대 LV15 초과 안 함)
+    const boostedLevel = Math.min(currentLevel.level + stayBonusLevelBoost, LEVEL_TABLE.length);
+    return LEVEL_TABLE[boostedLevel - 1];
 }
 
 function updateHud() {
@@ -550,10 +580,40 @@ function handlePosition(position) {
     } else { playerMarker.setLatLng(latlng); }
     if (!isRecording) return;
     if (accuracy > 100) { recStatusBox.textContent = `GPS 너무 약함 (${Math.round(accuracy)}m)`; return; }
-    recStatusBox.textContent = accuracy > MAX_ACCURACY_M ? `GPS 약함 (${Math.round(accuracy)}m)` : "기록 중";
+
     const now = Date.now();
+
+    // 속도 계산 (이전 포인트와의 거리/시간)
+    let speedMs = 0;
+    if (pathCoordinates.length > 0) {
+        const last     = pathCoordinates[pathCoordinates.length - 1];
+        const dist     = distanceToPoint(latlng, last);
+        const timeDiff = (now - last.endTime) / 1000; // 초
+        if (timeDiff > 0) speedMs = dist / timeDiff;
+    }
+
+    // 레벨에 따른 속도 제한 확인
+    const currentLevel = calcLevel().level;
+    let speedLimit;
+    if (currentLevel >= 15) {
+        speedLimit = Infinity;                   // 모든 이동수단 허용
+    } else if (currentLevel >= 5) {
+        speedLimit = SPEED_LIMIT_BIKE;           // 자전거까지 허용
+    } else {
+        speedLimit = SPEED_LIMIT_WALK;           // 걷기만 허용
+    }
+
+    if (speedMs > speedLimit) {
+        const kmh = Math.round(speedMs * 3.6);
+        const limitKmh = Math.round(speedLimit * 3.6);
+        recStatusBox.textContent = `빠른 이동 (${kmh}km/h) — 마킹 제한`;
+        return;
+    }
+
+    recStatusBox.textContent = accuracy > MAX_ACCURACY_M ? `GPS 약함 (${Math.round(accuracy)}m)` : "기록 중";
     if (pathCoordinates.length === 0) {
         pathCoordinates.push(createPathPoint(latlng, now));
+        checkStayBonus(latlng, now);
         updateStats(); scheduleSave(); scheduleRender(); return;
     }
     const last          = pathCoordinates[pathCoordinates.length - 1];
@@ -568,6 +628,7 @@ function handlePosition(position) {
         pathCoordinates.push(createPathPoint(latlng, now));
         if (pathCoordinates.length > MAX_PATH_POINTS) compactPathData();
     }
+    checkStayBonus(latlng, now);
     updateStats(); scheduleSave(); scheduleRender();
 }
 
@@ -583,6 +644,68 @@ function createPathPoint(latlng, timestamp) {
 
 function distanceToPoint(latlng, point) { return latlng.distanceTo([point.lat, point.lng]); }
 function getDynamicStayThreshold(accuracy) { return Math.max(MIN_MOVE_M, Math.min(MAX_STAY_RADIUS_M, accuracy * STAY_ACCURACY_FACTOR)); }
+
+function checkStayBonus(latlng, now) {
+    // 체류 기준점 설정 또는 이탈 감지
+    if (!stayBonusAnchor) {
+        stayBonusAnchor    = latlng;
+        stayBonusStartTime = now;
+        return;
+    }
+    const distFromAnchor = latlng.distanceTo(stayBonusAnchor);
+    if (distFromAnchor > STAY_BONUS_RADIUS_M) {
+        // 기준점에서 벗어남 → 새 기준점으로 리셋
+        stayBonusAnchor    = latlng;
+        stayBonusStartTime = now;
+        return;
+    }
+
+    // 이 장소에서 이미 보너스를 받았는지 확인
+    const alreadyBonused = stayBonusPlaces.some(p =>
+        latlng.distanceTo([p.lat, p.lng]) <= STAY_BONUS_RADIUS_M
+    );
+    if (alreadyBonused) return;
+
+    // 체류 시간 확인
+    const elapsed   = now - stayBonusStartTime;
+    const remaining = STAY_BONUS_MS - elapsed;
+
+    if (remaining > 0) {
+        const mins = Math.ceil(remaining / 60000);
+        recStatusBox.textContent = `기록 중 · 체류 보너스까지 ${mins}분`;
+        return;
+    }
+
+    // 30분 달성! 레벨 +1 보너스
+    stayBonusPlaces.push({ lat: stayBonusAnchor.lat, lng: stayBonusAnchor.lng });
+    stayBonusLevelBoost += 1;
+    saveBonusState();
+    updateStats();
+
+    recStatusBox.textContent = "🎉 30분 체류 달성! 레벨 +1 보너스!";
+    setTimeout(() => {
+        if (isRecording) recStatusBox.textContent = "기록 중";
+    }, 4000);
+
+    // 앵커 유지 (같은 장소에서 추가 보너스 방지용으로 이미 places에 등록됨)
+}
+
+function saveBonusState() {
+    localStorage.setItem("giloa-stay-bonus", JSON.stringify({
+        boost:  stayBonusLevelBoost,
+        places: stayBonusPlaces
+    }));
+}
+
+function loadBonusState() {
+    try {
+        const raw = localStorage.getItem("giloa-stay-bonus");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        stayBonusLevelBoost = isFinite(data.boost) ? data.boost : 0;
+        stayBonusPlaces     = Array.isArray(data.places) ? data.places.filter(p => isFinite(p.lat) && isFinite(p.lng)) : [];
+    } catch (e) { console.warn("보너스 상태 복원 실패", e); }
+}
 
 function calcTodayDistance() {
     const todayStartMs = new Date().setHours(0, 0, 0, 0);
@@ -1064,6 +1187,7 @@ function initHudTapTargets() {
 function init() {
     resizeCanvas();
     loadState();
+    loadBonusState();
     renderStoredMarkers();
     renderStoredPhotoMarkers();
     updateStats();
@@ -1076,4 +1200,3 @@ function init() {
 }
 
 map.whenReady(() => init());
-    
