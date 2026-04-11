@@ -89,21 +89,6 @@ const fogCtx     = fogCanvas.getContext("2d");
 const ageCtx     = ageCanvas.getContext("2d");
 const stayCtx    = stayCanvas.getContext("2d");
 
-// ✅ 캔버스를 지도 컨테이너 안으로 이동시켜 안개가 지도 위에 표시되게 함
-function attachEffectCanvasesToMap() {
-    const container = map.getContainer();
-    [
-        [fogCanvas,  350],
-        [ageCanvas,  351],
-        [stayCanvas, 352]
-    ].forEach(([canvas, zIndex]) => {
-        canvas.style.position    = "absolute";
-        canvas.style.pointerEvents = "none";
-        canvas.style.zIndex      = String(zIndex);
-        container.appendChild(canvas);
-    });
-}
-
 function resizeCanvas() {
     const w = window.innerWidth  + 2;
     const h = window.innerHeight + 2;
@@ -142,11 +127,8 @@ function renderFog() {
     const w = fogCanvas.width, h = fogCanvas.height;
     fogCtx.clearRect(0, 0, w, h);
     if (!isFogEnabled) return;
-
-    // ✅ 경로 유무와 관계없이 항상 안개를 전체에 깜
     fogCtx.fillStyle = `rgba(8, 10, 18, ${FOG_ALPHA})`;
     fogCtx.fillRect(0, 0, w, h);
-
     if (pathCoordinates.length === 0) return;
 
     const now    = Date.now();
@@ -450,8 +432,16 @@ function closePhotoMenu() {
     document.getElementById("photo-menu-overlay").classList.remove("show");
 }
 
-function triggerCamera() { closePhotoMenu(); document.getElementById("camera-input").click(); }
-function triggerGallery() { closePhotoMenu(); document.getElementById("gallery-input").click(); }
+function triggerCamera() {
+    closePhotoMenu();
+    document.getElementById("camera-input").click();
+}
+
+function triggerGallery() {
+    closePhotoMenu();
+    document.getElementById("gallery-input").click();
+}
+
 function resetRecordingState() { isRecording = false; syncRecordingUI(); stopTracking(); }
 
 function toggleRecording() {
@@ -691,8 +681,8 @@ function exportGpx() {
 `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Giloa - 나의 대동여지도"
      xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><n>${name}</n><time>${new Date().toISOString()}</time></metadata>
-  <trk><n>${name}</n><trkseg>
+  <metadata><name>${name}</name><time>${new Date().toISOString()}</time></metadata>
+  <trk><name>${name}</name><trkseg>
 ${trkpts}
   </trkseg></trk>
 </gpx>`;
@@ -852,6 +842,7 @@ function handlePhotos(event) {
     const files = Array.from(event.target.files);
     if (!files.length) return;
     let processed = 0;
+
     const finishOne = () => {
         processed++;
         if (processed === files.length) {
@@ -859,6 +850,7 @@ function handlePhotos(event) {
             event.target.value = "";
         }
     };
+
     files.forEach(file => {
         EXIF.getData(file, function() {
             let lat = null, lng = null;
@@ -866,16 +858,25 @@ function handlePhotos(event) {
             const latRef = EXIF.getTag(this, "GPSLatitudeRef");
             const lngVal = EXIF.getTag(this, "GPSLongitude");
             const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
+
             if (latVal && lngVal) {
                 lat = latVal[0] + latVal[1]/60 + latVal[2]/3600;
                 lng = lngVal[0] + lngVal[1]/60 + lngVal[2]/3600;
                 if (latRef === "S") lat = -lat;
                 if (lngRef === "W") lng = -lng;
             }
+
             if (!lat || !lng) {
-                if (currentPos) { lat = currentPos.lat; lng = currentPos.lng; }
-                else { const center = map.getCenter(); lat = center.lat; lng = center.lng; }
+                if (currentPos) {
+                    lat = currentPos.lat;
+                    lng = currentPos.lng;
+                } else {
+                    const center = map.getCenter();
+                    lat = center.lat;
+                    lng = center.lng;
+                }
             }
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const now = new Date();
@@ -885,7 +886,8 @@ function handlePhotos(event) {
                     const thumb = resizeImage(img, 40);
                     const data = {
                         id: String(now.getTime()) + Math.random().toString(36).slice(2),
-                        lat, lng, photo: popup, thumb: thumb,
+                        lat, lng,
+                        photo: popup, thumb: thumb,
                         time: now.getTime(),
                         dateString: now.toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" }),
                         timeString: now.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" })
@@ -911,11 +913,9 @@ function resizeImage(img, maxSize) {
     return canvas.toDataURL("image/jpeg", 0.7);
 }
 
-// ✅ pane: "memoryPane" — 사진 마커가 안개 위에 표시됨
 function createPhotoMarker(data, openPopup = false) {
     const size = getPhotoMarkerSize();
     const marker = L.marker([data.lat, data.lng], {
-        pane: "memoryPane",
         icon: L.divIcon({
             className: "photo-marker",
             html: `<img src="${data.thumb}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:6px;border:2px solid #fff;" />`,
@@ -957,13 +957,21 @@ function initHudTapTargets() {
     const distItem  = document.querySelector(".hud-prog-item:nth-child(1)");
     const memItem   = document.querySelector(".hud-prog-item:nth-child(2)");
     const photoItem = document.querySelector(".hud-prog-item:nth-child(3)");
-    if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", () => { toggleSidebar(true); switchTab("gpx"); }); }
-    if (memItem)  { memItem.style.cursor  = "pointer"; memItem.addEventListener("click",  () => { toggleSidebar(true); switchTab("memory"); }); }
-    if (photoItem){ photoItem.style.cursor= "pointer"; photoItem.addEventListener("click",() => { toggleSidebar(true); switchTab("photo"); }); }
+    if (distItem) {
+        distItem.style.cursor = "pointer";
+        distItem.addEventListener("click", () => { toggleSidebar(true); switchTab("gpx"); });
+    }
+    if (memItem) {
+        memItem.style.cursor = "pointer";
+        memItem.addEventListener("click", () => { toggleSidebar(true); switchTab("memory"); });
+    }
+    if (photoItem) {
+        photoItem.style.cursor = "pointer";
+        photoItem.addEventListener("click", () => { toggleSidebar(true); switchTab("photo"); });
+    }
 }
 
 function init() {
-    attachEffectCanvasesToMap(); // ✅ 캔버스를 지도 컨테이너 안으로 이동
     resizeCanvas();
     loadState();
     renderStoredMarkers();

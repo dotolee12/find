@@ -1,4 +1,1 @@
-이건 이강희 개인이 창작한 것이므로 모든 소유권은 제게 있습니다. 무단 도용은 하지 마시고 쓴다고 전화로 말씀해 주시면 왠만하면 허락해줍니다. 저 개인의 재미로 했지만 이것이 온라인상과 오프라인상에 교두부가 되어 유익하게 활용되기를 바랍니다.
-https://www.notion.so/2029d4a79bc180c5a671d265af03c5b6
-
-여기에 앞으로 이렇게 활용하면 좋을 거 같다는 생각을 적어놨습니다. 제가 아닌 다른 분이라도 이 아이디어를 꽃 피우길...
+this app for tracking your road. After this app might be link for reality and virtual world.
