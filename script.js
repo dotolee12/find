@@ -216,20 +216,39 @@ function renderAgeTint() {
     const now    = Date.now();
     const mpp    = calcMpp();
     const radius = metersToPixels(FOG_RADIUS_M, mpp);
+
+    // 색상별로 버킷에 모음
+    const buckets = new Map();
     pathCoordinates.forEach((point, i) => {
         const ageDays = (now - point.startTime) / 86400000;
         const color   = getAgeColor(ageDays);
         if (!color) return;
+        if (!buckets.has(color)) buckets.set(color, []);
         const pos = map.latLngToContainerPoint([point.lat, point.lng]);
-        ageCtx.fillStyle = color; ageCtx.strokeStyle = color;
-        ageCtx.beginPath(); ageCtx.arc(pos.x, pos.y, radius, 0, Math.PI * 2); ageCtx.fill();
         if (i > 0) {
             const prev = map.latLngToContainerPoint([pathCoordinates[i-1].lat, pathCoordinates[i-1].lng]);
-            ageCtx.beginPath();
-            ageCtx.lineWidth = radius * 1.15; ageCtx.lineCap = "round"; ageCtx.lineJoin = "round";
-            ageCtx.moveTo(prev.x, prev.y); ageCtx.lineTo(pos.x, pos.y); ageCtx.stroke();
+            buckets.get(color).push({ type: "line", x1: prev.x, y1: prev.y, x2: pos.x, y2: pos.y });
         }
     });
+
+    // 색상별로 offscreen에 한 번만 그리고 합성
+    for (const [color, draws] of buckets) {
+        const offscreen = document.createElement("canvas");
+        offscreen.width  = w;
+        offscreen.height = h;
+        const offCtx = offscreen.getContext("2d");
+        offCtx.strokeStyle = color;
+        offCtx.lineWidth   = radius * 1.15;
+        offCtx.lineCap     = "round";
+        offCtx.lineJoin    = "round";
+        offCtx.beginPath();
+        draws.forEach(d => {
+            offCtx.moveTo(d.x1, d.y1);
+            offCtx.lineTo(d.x2, d.y2);
+        });
+        offCtx.stroke();
+        ageCtx.drawImage(offscreen, 0, 0);
+    }
 }
 
 function getAgeColor(ageDays) {
