@@ -66,7 +66,7 @@ const map = L.map("map", { zoomControl: false, attributionControl: false })
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
 
 map.createPane("memoryPane");
-map.getPane("memoryPane").style.zIndex = 600;
+map.getPane("memoryPane").style.zIndex = 500;
 
 const photoClusterGroup = L.markerClusterGroup({
     maxClusterRadius: 60,
@@ -88,22 +88,6 @@ const stayCanvas = document.getElementById("stay-canvas");
 const fogCtx     = fogCanvas.getContext("2d");
 const ageCtx     = ageCanvas.getContext("2d");
 const stayCtx    = stayCanvas.getContext("2d");
-
-attachEffectCanvasesToMap();
-
-function attachEffectCanvasesToMap() {
-    const container = map.getContainer();
-    [
-        [fogCanvas, 350],
-        [ageCanvas, 351],
-        [stayCanvas, 352]
-    ].forEach(([canvas, zIndex]) => {
-        canvas.style.position = "absolute";
-        canvas.style.pointerEvents = "none";
-        canvas.style.zIndex = String(zIndex);
-        container.appendChild(canvas);
-    });
-}
 
 function resizeCanvas() {
     const w = window.innerWidth  + 2;
@@ -145,8 +129,7 @@ function renderFog() {
     if (!isFogEnabled) return;
     fogCtx.fillStyle = `rgba(8, 10, 18, ${FOG_ALPHA})`;
     fogCtx.fillRect(0, 0, w, h);
-    // 경로가 없어도 안개는 유지 (return 제거)
-    if (pathCoordinates.length === 0) return; // 경로 없으면 안개만 깔고 종료 (걷힘 없음)
+    if (pathCoordinates.length === 0) return;
 
     const now    = Date.now();
     const mpp    = calcMpp();
@@ -884,14 +867,8 @@ function handlePhotos(event) {
             }
 
             if (!lat || !lng) {
-                if (currentPos) {
-                    lat = currentPos.lat;
-                    lng = currentPos.lng;
-                } else {
-                    const center = map.getCenter();
-                    lat = center.lat;
-                    lng = center.lng;
-                }
+                if (currentPos) { lat = currentPos.lat; lng = currentPos.lng; }
+                else { const center = map.getCenter(); lat = center.lat; lng = center.lng; }
             }
 
             const reader = new FileReader();
@@ -903,8 +880,7 @@ function handlePhotos(event) {
                     const thumb = resizeImage(img, 40);
                     const data = {
                         id: String(now.getTime()) + Math.random().toString(36).slice(2),
-                        lat, lng,
-                        photo: popup, thumb: thumb,
+                        lat, lng, photo: popup, thumb: thumb,
                         time: now.getTime(),
                         dateString: now.toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" }),
                         timeString: now.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" })
@@ -930,6 +906,7 @@ function resizeImage(img, maxSize) {
     return canvas.toDataURL("image/jpeg", 0.7);
 }
 
+// ✅ pane: "memoryPane" 추가 — 사진 마커가 안개(z-index 350) 위에 표시됨 (memoryPane z-index 500)
 function createPhotoMarker(data, openPopup = false) {
     const size = getPhotoMarkerSize();
     const marker = L.marker([data.lat, data.lng], {
@@ -975,18 +952,9 @@ function initHudTapTargets() {
     const distItem  = document.querySelector(".hud-prog-item:nth-child(1)");
     const memItem   = document.querySelector(".hud-prog-item:nth-child(2)");
     const photoItem = document.querySelector(".hud-prog-item:nth-child(3)");
-    if (distItem) {
-        distItem.style.cursor = "pointer";
-        distItem.addEventListener("click", () => { toggleSidebar(true); switchTab("gpx"); });
-    }
-    if (memItem) {
-        memItem.style.cursor = "pointer";
-        memItem.addEventListener("click", () => { toggleSidebar(true); switchTab("memory"); });
-    }
-    if (photoItem) {
-        photoItem.style.cursor = "pointer";
-        photoItem.addEventListener("click", () => { toggleSidebar(true); switchTab("photo"); });
-    }
+    if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", () => { toggleSidebar(true); switchTab("gpx"); }); }
+    if (memItem)  { memItem.style.cursor  = "pointer"; memItem.addEventListener("click",  () => { toggleSidebar(true); switchTab("memory"); }); }
+    if (photoItem){ photoItem.style.cursor= "pointer"; photoItem.addEventListener("click",() => { toggleSidebar(true); switchTab("photo"); }); }
 }
 
 function init() {
