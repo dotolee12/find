@@ -39,6 +39,57 @@ const LEVEL_TABLE = [
 { level: 7, title: "세계의 기록자",       distKm: 200, memories: 20, photos: 15 },
 ];
 
+// ── IndexedDB (사진 이미지 전용) ──────────────────────────────
+const IDB_NAME    = "giloa-photos";
+const IDB_VERSION = 1;
+const IDB_STORE   = "images";
+let idb = null;
+
+function openIdb() {
+    return new Promise((resolve, reject) => {
+        if (idb) { resolve(idb); return; }
+        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE, { keyPath: "id" });
+        req.onsuccess  = e => { idb = e.target.result; resolve(idb); };
+        req.onerror    = e => reject(e.target.error);
+    });
+}
+
+function idbSavePhoto(id, photo, thumb) {
+    return openIdb().then(db => new Promise((resolve, reject) => {
+        const tx  = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put({ id, photo, thumb });
+        tx.oncomplete = resolve;
+        tx.onerror    = e => reject(e.target.error);
+    }));
+}
+
+function idbGetPhoto(id) {
+    return openIdb().then(db => new Promise((resolve, reject) => {
+        const req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).get(id);
+        req.onsuccess = e => resolve(e.target.result || null);
+        req.onerror   = e => reject(e.target.error);
+    }));
+}
+
+function idbDeletePhoto(id) {
+    return openIdb().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror    = e => reject(e.target.error);
+    }));
+}
+
+function idbGetAllPhotos() {
+    return openIdb().then(db => new Promise((resolve, reject) => {
+        const req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).getAll();
+        req.onsuccess = e => resolve(e.target.result || []);
+        req.onerror   = e => reject(e.target.error);
+    }));
+}
+// ─────────────────────────────────────────────────────────────
+
 let isRecording     = false;
 let photos          = [];
 let isFogEnabled    = true;
@@ -821,10 +872,15 @@ function persistState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
             pathCoordinates: pathCoordinates.map(p => ({ lat: p.lat, lng: p.lng, startTime: p.startTime, endTime: p.endTime, visits: p.visits || 1 })),
             memories: memories.map(m => ({ id: m.id, lat: m.lat, lng: m.lng, name: m.name, time: m.time, dateString: m.dateString, timeString: m.timeString })),
-            photos: photos.map(p => ({ id: p.id, lat: p.lat, lng: p.lng, thumb: p.thumb, photo: p.photo, time: p.time, dateString: p.dateString, timeString: p.timeString })),
+            photos: photos.map(p => ({ id: p.id, lat: p.lat, lng: p.lng, time: p.time, dateString: p.dateString, timeString: p.timeString })),
             totalDistance
         }));
-    } catch (e) { console.error("저장 실패", e); }
+    } catch (e) {
+        console.error("저장 실패", e);
+        if (e && e.name === "QuotaExceededError") {
+            alert("저장 공간이 부족합니다.\n오래된 발걸음 데이터를 정리하거나 사진을 일부 삭제해보세요.");
+        }
+    }
 }
 
 function loadState() {
@@ -849,7 +905,7 @@ function loadState() {
         }
         if (isFinite(saved.totalDistance)) totalDistance = saved.totalDistance;
         if (Array.isArray(saved.photos)) {
-            photos = saved.photos.filter(p => isFinite(p.lat) && isFinite(p.lng) && (typeof p.thumb === "string" || typeof p.photo === "string"));
+            photos = saved.photos.filter(p => isFinite(p.lat) && isFinite(p.lng) && p.id);
         }
         const savedFog = localStorage.getItem(FOG_ENABLED_KEY);
         if (savedFog !== null) isFogEnabled = savedFog === "true";
@@ -903,15 +959,16 @@ function handlePhotos(event) {
                 img.onload = function() {
                     const popup = resizeImage(img, 200);
                     const thumb = resizeImage(img, 40);
+                    const id = String(now.getTime()) + Math.random().toString(36).slice(2);
                     const data = {
-                        id: String(now.getTime()) + Math.random().toString(36).slice(2),
-                        lat, lng,
+                        id, lat, lng,
                         photo: popup, thumb: thumb,
                         time: now.getTime(),
                         dateString: now.toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" }),
                         timeString: now.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" })
                     };
                     photos.push(data);
+                    idbSavePhoto(id, popup, thumb).catch(e => console.warn("IDB 저장 실패", e));
                     createPhotoMarker(data, true);
                     finishOne();
                 };
@@ -961,6 +1018,7 @@ function deletePhoto(id) {
     photos = photos.filter(p => p.id !== id);
     const marker = findPhotoMarker(id);
     if (marker) photoClusterGroup.removeLayer(marker);
+    idbDeletePhoto(id).catch(e => console.warn("IDB 삭제 실패", e));
     updateStats(); scheduleSave();
 }
 
@@ -969,7 +1027,20 @@ function escapeHtml(value) {
 }
 
 function renderStoredMarkers()      { memories.forEach(m => createMemoryMarker(m, false)); }
-function renderStoredPhotoMarkers() { photos.forEach(p => createPhotoMarker(p, false)); }
+function renderStoredPhotoMarkers() {
+    if (photos.length === 0) return;
+    idbGetAllPhotos().then(idbList => {
+        const idbMap = new Map(idbList.map(r => [r.id, r]));
+        photos.forEach(p => {
+            const img = idbMap.get(p.id);
+            if (img) {
+                p.photo = img.photo;
+                p.thumb = img.thumb;
+                createPhotoMarker(p, false);
+            }
+        });
+    }).catch(e => console.warn("IDB 불러오기 실패", e));
+}
 function initGpxDial() { dialHours = 12; updateDialUI(); }
 
 function initHudTapTargets() {
@@ -1005,3 +1076,4 @@ function init() {
 }
 
 map.whenReady(() => init());
+    
