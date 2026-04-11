@@ -145,7 +145,8 @@ function renderFog() {
     if (!isFogEnabled) return;
     fogCtx.fillStyle = `rgba(8, 10, 18, ${FOG_ALPHA})`;
     fogCtx.fillRect(0, 0, w, h);
-    if (pathCoordinates.length === 0) return;
+    // 경로가 없어도 안개는 유지 (return 제거)
+    if (pathCoordinates.length === 0) return; // 경로 없으면 안개만 깔고 종료 (걷힘 없음)
 
     const now    = Date.now();
     const mpp    = calcMpp();
@@ -932,6 +933,7 @@ function resizeImage(img, maxSize) {
 function createPhotoMarker(data, openPopup = false) {
     const size = getPhotoMarkerSize();
     const marker = L.marker([data.lat, data.lng], {
+        pane: "memoryPane",
         icon: L.divIcon({
             className: "photo-marker",
             html: `<img src="${data.thumb}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:6px;border:2px solid #fff;" />`,
